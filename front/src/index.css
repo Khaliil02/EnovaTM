@@ -1,0 +1,180 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global styles with forced colors */
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: #e9f9f8 !important; /* aqua-spring for subtle background */
+  color: #1f2937 !important;
+}
+
+/* Force text colors in various elements */
+h1, h2, h3, h4, h5, h6 {
+  color: #1f2937 !important;
+}
+
+p, span, div {
+  color: #374151 !important;
+}
+
+/* Replace your current link styles with these */
+a {
+  font-weight: 500;
+  color: #04ac9c !important; /* persian-green */
+  text-decoration: inherit;
+}
+
+a:hover {
+  color: #04b4a4 !important; /* slightly darker persian-green */
+}
+
+/* Update the button styles */
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.25s;
+  background-color: #f9f9f9;
+}
+
+button:hover {
+  border-color: #04ac9c; /* persian-green */
+  background-color: #e9f9f8;
+}
+
+button:focus,
+button:focus-visible {
+  outline: 3px solid rgba(4, 172, 156, 0.5);
+  outline-offset: 2px;
+}
+
+/* Add focus styles for interactive elements */
+:focus {
+  outline: 2px solid #04ac9c !important;
+  outline-offset: 2px;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: #04ac9c !important;
+  box-shadow: 0 0 0 3px rgba(4, 172, 156, 0.25) !important;
+}
+
+/* Utility classes with forced colors */
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-md font-medium transition-colors;
+  }
+  
+  .btn-primary {
+    @apply bg-primary-600 text-white hover:bg-primary-700;
+    color: white !important;
+  }
+  
+  .btn-secondary {
+    @apply bg-primary-100 hover:bg-primary-200;
+    color: #04ac9c !important;
+  }
+  
+  .btn-success {
+    @apply bg-green-600 hover:bg-green-700;
+    color: white !important;
+  }
+  
+  .btn-danger {
+    @apply bg-red-600 hover:bg-red-700;
+    color: white !important;
+  }
+  
+  /* Card with slight teal border */
+  .card {
+    @apply bg-white rounded-lg shadow-md overflow-hidden border border-primary-100;
+  }
+  
+  /* Update form inputs to use the new colors */
+  .form-input {
+    @apply w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500;
+  }
+  
+  .form-label {
+    @apply block mb-2;
+    color: #04ac9c !important;
+  }
+  
+  /* Add these status badge styles before the table styles */
+  .status-badge {
+    @apply px-2 py-1 rounded-md text-xs font-medium;
+  }
+
+  .status-open {
+    @apply bg-primary-100 text-primary-700;
+    color: #04ac9c !important;
+  }
+
+  .status-in-progress {
+    @apply bg-primary-200 text-primary-800;
+    color: #037a73 !important;
+  }
+
+  .status-resolved {
+    @apply bg-green-100 text-green-700;
+  }
+
+  .status-closed {
+    @apply bg-gray-100 text-gray-700;
+  }
+}
+
+/* Force text colors in tables */
+table th {
+  color: #4b5563 !important;
+}
+
+table td {
+  color: #1f2937 !important;
+}
+
+/* Add table row hover styles */
+tr:hover td {
+  background-color: rgba(4, 172, 156, 0.05) !important;
+}
+
+/* Add this to your CSS for accent backgrounds */
+.bg-accent-light {
+  background-color: #ccecec !important; /* jagged-ice */
+}
+
+.bg-accent {
+  background-color: #04ac9c !important; /* persian-green */
+}
+
+.text-accent {
+  color: #04ac9c !important; /* persian-green */
+}
+
+/* Add this to override all links within the navbar */
+nav a, nav button, nav span {
+  color: white !important;
+}
+
+nav a:hover {
+  color: white !important;
+}
