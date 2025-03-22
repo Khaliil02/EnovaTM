@@ -1,11 +1,71 @@
 import axios from 'axios';
+import cache from './apiCache';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-// Create axios instance with base URL
 const api = axios.create({
   baseURL: API_URL
 });
+
+// Add request interceptor to include auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    // Add caching for GET requests
+    if (config.method === 'get') {
+      const cacheKey = `${config.url}${JSON.stringify(config.params || {})}`;
+      const cachedResponse = cache.get(cacheKey);
+      
+      if (cachedResponse) {
+        // Cancel the request and return cached response
+        const source = axios.CancelToken.source();
+        config.cancelToken = source.token;
+        source.cancel(cachedResponse);
+      }
+      
+      // Store the cache key for later use
+      config._cacheKey = cacheKey;
+    }
+    
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Add response interceptor to handle token expiration and caching
+api.interceptors.response.use(
+  (response) => {
+    // Cache GET responses
+    if (response.config.method === 'get' && response.config._cacheKey) {
+      cache.set(response.config._cacheKey, response);
+    }
+    return response;
+  },
+  (error) => {
+    // Return cached response if request was cancelled due to caching
+    if (axios.isCancel(error)) {
+      return Promise.resolve(error.message);
+    }
+    
+    if (error.response?.status === 401) {
+      // Clear local storage and redirect to login
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+    
+    console.error('API Error:', error.response?.data || error.message);
+    return Promise.reject(error);
+  }
+);
+
+export const invalidateCache = () => {
+  cache.clear();
+};
 
 // Departments API
 export const departmentApi = {
@@ -49,41 +109,5 @@ export const commentApi = {
   create: (ticketId, content) => api.post(`/comments/ticket/${ticketId}`, { content }),
   delete: (commentId) => api.delete(`/comments/${commentId}`)
 };
-
-// Add request interceptor to include auth token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// Add response interceptor to handle token expiration
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Clear local storage and redirect to login
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
-
-// Add this interceptor to your API service
-api.interceptors.response.use(
-  response => response,
-  error => {
-    console.error('API Error:', error.response?.data || error.message);
-    // Add more detailed error logging here if needed
-    return Promise.reject(error);
-  }
-);
 
 export default api;

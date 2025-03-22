@@ -9,8 +9,8 @@ const {
   modifyTicketStatus,
   removeTicket,
   assignTicketToUser,
-  escalateTicketToAdmin,  // Add this
-  adminReassignTicket     // Add this
+  escalateTicketToAdmin,
+  adminReassignTicket
 } = require('../controllers/ticketController');
 const { authenticateUser, requireAdmin } = require('../middleware/authMiddleware');
 const { requireDestinationDepartment, requireDestinationDepartmentAdmin } = require('../middleware/ticketMiddleware');
@@ -28,11 +28,11 @@ router.post('/', addTicket);
 // Routes that require destination department permissions
 router.put('/:id/claim', requireDestinationDepartment, assignTicketToUser);
 router.put('/:id/status', requireDestinationDepartment, modifyTicketStatus);
-router.put('/:id/escalate', requireDestinationDepartment, escalateTicketToAdmin); // Add this
+router.put('/:id/escalate', requireDestinationDepartment, escalateTicketToAdmin);
 
 // Admin-only routes
 router.delete('/:id', requireAdmin, removeTicket);
-router.put('/:id/reassign', requireDestinationDepartmentAdmin, adminReassignTicket); // Add this
+router.put('/:id/reassign', requireDestinationDepartmentAdmin, adminReassignTicket);
 
 module.exports = router;
 

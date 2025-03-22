@@ -1,9 +1,12 @@
 const pool = require('../config/db');
 
 const getTickets = async () => {
-    const result = await pool.query('SELECT * FROM tickets');
-    return result.rows;
-}
+  const result = await pool.query(`
+    SELECT * FROM tickets
+    ORDER BY creation_date DESC
+  `);
+  return result.rows;
+};
 
 const getTicketById = async (id) => {
     const query = 'SELECT * FROM tickets WHERE id = $1';

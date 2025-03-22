@@ -17,9 +17,13 @@ const { createTicketStatusNotification, createNewTicketNotification } = require(
 
 const getAllTickets = async (req, res) => {
   try {
+    // Use the existing getTickets function instead of pagination
     const tickets = await getTickets();
+    
+    // Return tickets directly without pagination info
     res.json(tickets);
   } catch (err) {
+    console.error('Error fetching tickets:', err);
     res.status(500).json({ error: err.message });
   }
 };

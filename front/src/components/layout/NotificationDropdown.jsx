@@ -53,14 +53,27 @@ const NotificationDropdown = () => {
   return (
     <div className="relative" ref={dropdownRef}>
       <button
-        className="relative p-1.5 rounded-full hover:bg-primary-700 focus:outline-none transition-colors"
+        className={`
+          relative p-2 rounded-full 
+          text-white 
+          hover:bg-primary-700 
+          focus:outline-none 
+          transition-colors
+        `}
         onClick={toggleDropdown}
         aria-label="Notifications"
       >
         <FiBell className="h-5 w-5 notification-bell" />
         
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-red-600 rounded-full notification-badge">
+          <span className={`
+            absolute -top-1 -right-1 
+            flex items-center justify-center 
+            w-4 h-4 
+            text-xs font-bold text-white 
+            bg-red-600 rounded-full 
+            notification-badge
+          `}>
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}

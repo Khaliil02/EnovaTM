@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { ticketApi } from '../services/api';
@@ -32,18 +32,24 @@ const DashboardPage = () => {
   }, []);
   
   // Calculate ticket stats
-  const openTickets = tickets.filter(ticket => ticket.status === 'open').length;
-  const inProgressTickets = tickets.filter(ticket => ticket.status === 'in_progress').length;
-  const escalatedTickets = tickets.filter(ticket => ticket.status === 'escalated').length;
-  const closedTickets = tickets.filter(ticket => ticket.status === 'closed').length;
-  
-  // Get recent tickets (limit to 5)
-  const recentTickets = [...tickets].sort((a, b) => 
-    new Date(b.creation_date) - new Date(a.creation_date)
-  ).slice(0, 5);
-  
-  // Get tickets assigned to current user
-  const myTickets = tickets.filter(ticket => ticket.assigned_to === user.id);
+  const ticketStats = useMemo(() => {
+    return {
+      open: tickets.filter(ticket => ticket.status === 'open').length,
+      inProgress: tickets.filter(ticket => ticket.status === 'in_progress').length,
+      escalated: tickets.filter(ticket => ticket.status === 'escalated').length,
+      closed: tickets.filter(ticket => ticket.status === 'closed').length
+    };
+  }, [tickets]);
+
+  const recentTickets = useMemo(() => {
+    return [...tickets]
+      .sort((a, b) => new Date(b.creation_date) - new Date(a.creation_date))
+      .slice(0, 5);
+  }, [tickets]);
+
+  const myTickets = useMemo(() => {
+    return tickets.filter(ticket => ticket.assigned_to === user.id);
+  }, [tickets, user.id]);
   
   if (loading) {
     return (
@@ -74,25 +80,25 @@ const DashboardPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <TicketStatusCard
           title="Open"
-          count={openTickets}
+          count={ticketStats.open}
           color="bg-yellow-100 text-yellow-800"
           link="/tickets?status=open"
         />
         <TicketStatusCard
           title="In Progress"
-          count={inProgressTickets}
+          count={ticketStats.inProgress}
           color="bg-blue-100 text-blue-800"
           link="/tickets?status=in_progress"
         />
         <TicketStatusCard
           title="Escalated"
-          count={escalatedTickets}
+          count={ticketStats.escalated}
           color="bg-red-100 text-red-800"
           link="/tickets?status=escalated"
         />
         <TicketStatusCard
           title="Closed"
-          count={closedTickets}
+          count={ticketStats.closed}
           color="bg-green-100 text-green-800"
           link="/tickets?status=closed"
         />

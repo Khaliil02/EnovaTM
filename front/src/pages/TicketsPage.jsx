@@ -1,12 +1,14 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useCallback, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { ticketApi, userApi, departmentApi } from '../services/api';
-import { FiPlus, FiLoader, FiFilter, FiSearch } from 'react-icons/fi';
+import { FiPlus, FiFilter, FiSearch } from 'react-icons/fi';
+import { getUserName } from '../utils/userUtils';
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import StatusBadge from '../components/common/StatusBadge';
 
 const TicketsPage = () => {
   const [tickets, setTickets] = useState([]);
-  const [filteredTickets, setFilteredTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [users, setUsers] = useState([]);
@@ -17,7 +19,7 @@ const TicketsPage = () => {
     priority: '',
     searchTerm: '',
     assignedToMe: searchParams.get('assigned_to_me') === 'true',
-    department: searchParams.get('department') || '' // Added department filter
+    department: searchParams.get('department') || ''
   });
   
   const { user } = useContext(AuthContext);
@@ -28,28 +30,37 @@ const TicketsPage = () => {
       try {
         setLoading(true);
         
-        // Fetch tickets based on status if provided
-        let ticketsResponse;
-        if (filters.status) {
-          ticketsResponse = await ticketApi.getByStatus(filters.status);
-        } else {
-          ticketsResponse = await ticketApi.getAll();
+        // Fetch users and departments first
+        let usersResponse, departmentsResponse;
+        try {
+          [usersResponse, departmentsResponse] = await Promise.all([
+            userApi.getAll(),
+            departmentApi.getAll()
+          ]);
+          
+          setUsers(usersResponse.data);
+          setDepartments(departmentsResponse.data);
+        } catch (err) {
+          console.error('Error fetching users or departments:', err);
+          // Continue to fetch tickets even if these fail
         }
         
-        // Fetch users and departments for display names
-        const [usersResponse, departmentsResponse] = await Promise.all([
-          userApi.getAll(),
-          departmentApi.getAll()
-        ]);
-        
-        setTickets(ticketsResponse.data);
-        setFilteredTickets(ticketsResponse.data);
-        setUsers(usersResponse.data);
-        setDepartments(departmentsResponse.data);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching data:', err);
-        setError('Failed to load tickets. Please try again later.');
+        // Then fetch tickets
+        let ticketsResponse;
+        try {
+          if (filters.status) {
+            ticketsResponse = await ticketApi.getByStatus(filters.status);
+          } else {
+            ticketsResponse = await ticketApi.getAll();
+          }
+          
+          setTickets(ticketsResponse.data || []);
+          setError(null);
+        } catch (err) {
+          console.error('Error fetching tickets:', err);
+          setError('Failed to load tickets. Please try again later.');
+          setTickets([]);
+        }
       } finally {
         setLoading(false);
       }
@@ -58,49 +69,50 @@ const TicketsPage = () => {
     fetchData();
   }, [filters.status]);
   
-  // Apply filters whenever they change
-  useEffect(() => {
-    const applyFilters = () => {
-      let result = [...tickets];
+  // Optimized filtering function
+  const applyFilters = useCallback(() => {
+    let result = [...tickets];
+    
+    // Use early returns for faster filtering
+    if (!result.length) return [];
+    
+    // Apply multiple filters with a single pass
+    result = result.filter(ticket => {
+      // Status filter
+      if (filters.status && ticket.status !== filters.status) return false;
       
-      // Filter by status
-      if (filters.status) {
-        result = result.filter(ticket => ticket.status === filters.status);
-      }
+      // Priority filter
+      if (filters.priority && ticket.priority !== filters.priority) return false;
       
-      // Filter by priority
-      if (filters.priority) {
-        result = result.filter(ticket => ticket.priority === filters.priority);
-      }
+      // Assigned to me filter
+      if (filters.assignedToMe && ticket.assigned_to !== user.id) return false;
       
-      // Filter by assigned to me
-      if (filters.assignedToMe) {
-        result = result.filter(ticket => ticket.assigned_to === user.id);
-      }
-      
-      // Filter by department
+      // Department filter
       if (filters.department) {
         const deptId = String(filters.department);
-        result = result.filter(ticket => 
-          String(ticket.destination_department_id) === deptId || 
-          String(ticket.source_department_id) === deptId
-        );
+        if (String(ticket.destination_department_id) !== deptId && 
+            String(ticket.source_department_id) !== deptId) {
+          return false;
+        }
       }
       
-      // Filter by search term (in title or description)
+      // Search term filter
       if (filters.searchTerm) {
         const term = filters.searchTerm.toLowerCase();
-        result = result.filter(ticket => 
-          ticket.title.toLowerCase().includes(term) || 
-          ticket.description.toLowerCase().includes(term)
-        );
+        return ticket.title.toLowerCase().includes(term) || 
+               (ticket.description && ticket.description.toLowerCase().includes(term));
       }
       
-      setFilteredTickets(result);
-    };
+      return true;
+    });
     
-    applyFilters();
-  }, [tickets, filters, user]);
+    return result;
+  }, [tickets, filters, user.id]);
+  
+  // Use the memoized filtered tickets
+  const filteredTickets = useMemo(() => {
+    return applyFilters();
+  }, [applyFilters]);
   
   // Update URL when filters change
   useEffect(() => {
@@ -120,27 +132,13 @@ const TicketsPage = () => {
     }));
   };
   
-  // Fixed getUserName function
-  const getUserName = (userId) => {
-    const foundUser = users.find(u => u.id === userId);
-    if (!foundUser) return 'Unknown User';
-    
-    return foundUser.first_name && foundUser.last_name ? 
-      `${foundUser.first_name} ${foundUser.last_name}` : 
-      (foundUser.name || 'Unknown User');
-  };
-  
   const getDepartmentName = (deptId) => {
     const dept = departments.find(d => d.id === deptId);
     return dept ? dept.name : 'Unknown Department';
   };
   
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <FiLoader className="animate-spin text-4xl text-primary-600" />
-      </div>
-    );
+    return <LoadingSpinner fullHeight text="Loading tickets..." />;
   }
 
   return (
@@ -156,8 +154,8 @@ const TicketsPage = () => {
       </div>
       
       {error && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-md mb-6">
-          {error}
+        <div className="bg-red-50 text-red-600 p-4 rounded-md mb-6 flex items-center">
+          <span>{error}</span>
         </div>
       )}
       
@@ -169,7 +167,7 @@ const TicketsPage = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {/* Search field at the top for better visibility */}
+          {/* Search field */}
           <div className="md:col-span-4">
             <label htmlFor="searchTerm" className="block text-sm font-medium text-gray-700 mb-1">
               Search
@@ -292,7 +290,7 @@ const TicketsPage = () => {
                   Destination Dept
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Created
+                  Created On
                 </th>
               </tr>
             </thead>
@@ -307,31 +305,16 @@ const TicketsPage = () => {
                       </Link>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        ticket.status === 'open' ? 'bg-yellow-100 text-yellow-800' :
-                        ticket.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-                        ticket.status === 'escalated' ? 'bg-red-100 text-red-800' :
-                        'bg-green-100 text-green-800'
-                      }`}>
-                        {ticket.status === 'in_progress' ? 'In Progress' : 
-                         ticket.status.charAt(0).toUpperCase() + ticket.status.slice(1)}
-                      </span>
+                      <StatusBadge status={ticket.status} />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        ticket.priority === 'low' ? 'bg-green-100 text-green-800' :
-                        ticket.priority === 'medium' ? 'bg-blue-100 text-blue-800' :
-                        ticket.priority === 'high' ? 'bg-orange-100 text-orange-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        {ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1)}
-                      </span>
+                      <StatusBadge status={ticket.priority} type="priority" />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {getUserName(ticket.created_by)}
+                      {getUserName(ticket.created_by, users)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {ticket.assigned_to ? getUserName(ticket.assigned_to) : '_ _ _'}
+                      {ticket.assigned_to ? getUserName(ticket.assigned_to, users) : '_ _ _'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getDepartmentName(ticket.source_department_id)}
@@ -347,7 +330,7 @@ const TicketsPage = () => {
               ) : (
                 <tr>
                   <td colSpan="9" className="px-6 py-12 text-center text-gray-500">
-                    No tickets found matching your filters
+                    {error ? 'Error loading tickets' : 'No tickets found matching your filters'}
                   </td>
                 </tr>
               )}

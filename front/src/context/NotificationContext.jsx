@@ -27,27 +27,42 @@ export const NotificationProvider = ({ children }) => {
     }
   }, [isAuthenticated]);
 
+  // Optimize socket connection management
   useEffect(() => {
-    if (isAuthenticated && user?.id) {
-      const socket = io();
+    if (!isAuthenticated || !user?.id) return;
+    
+    // Create singleton socket instance
+    if (!window.notificationSocket) {
+      console.log('Creating new socket connection');
+      window.notificationSocket = io(import.meta.env.VITE_API_URL);
       
-      // Authenticate with socket
-      socket.emit('authenticate', user.id);
-      
-      // Listen for new notifications
-      socket.on('newNotification', (notification) => {
-        // Update notifications list
-        setNotifications(prev => [notification, ...prev]);
-        
-        // Increase unread count
-        setUnreadCount(prev => prev + 1);
+      // Set up event listeners once
+      window.notificationSocket.on('connect', () => {
+        console.log('Socket connected');
       });
       
-      return () => {
-        socket.disconnect();
-      };
+      window.notificationSocket.on('disconnect', () => {
+        console.log('Socket disconnected');
+      });
+      
+      window.notificationSocket.on('newNotification', (notification) => {
+        console.log('New notification received:', notification);
+        setNotifications(prev => [notification, ...prev]);
+        setUnreadCount(prev => prev + 1);
+      });
     }
-  }, [isAuthenticated, user]);
+    
+    // Authenticate with current user ID
+    window.notificationSocket.emit('authenticate', user.id);
+    
+    return () => {
+      // Only disconnect on logout, not on component unmount
+      if (!isAuthenticated) {
+        window.notificationSocket?.disconnect();
+        window.notificationSocket = null;
+      }
+    };
+  }, [isAuthenticated, user?.id]);
 
   const fetchNotifications = async () => {
     try {
