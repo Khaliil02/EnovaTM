@@ -76,4 +76,14 @@ api.interceptors.response.use(
   }
 );
 
+// Add this interceptor to your API service
+api.interceptors.response.use(
+  response => response,
+  error => {
+    console.error('API Error:', error.response?.data || error.message);
+    // Add more detailed error logging here if needed
+    return Promise.reject(error);
+  }
+);
+
 export default api;

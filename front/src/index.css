@@ -31,15 +31,18 @@ p, span, div {
   color: #374151 !important;
 }
 
-/* Replace your current link styles with these */
+/* Update link styles around line 30-40 */
 a {
   font-weight: 500;
   color: #04ac9c !important; /* persian-green */
   text-decoration: inherit;
+  transition: color 0.2s ease, text-decoration 0.2s ease;
 }
 
+/* Update link hover colors */
 a:hover {
-  color: #04b4a4 !important; /* slightly darker persian-green */
+  color: #037a73 !important; /* Darker persian-green */
+  text-decoration: underline;
 }
 
 /* Update the button styles */
@@ -51,19 +54,41 @@ button {
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
-  transition: all 0.25s;
+  transition: all 0.25s ease;
   background-color: #f9f9f9;
 }
 
 button:hover {
   border-color: #04ac9c; /* persian-green */
-  background-color: #e9f9f8;
+  background-color: #f3fafa;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(4, 172, 156, 0.1);
+}
+
+button:active {
+  transform: translateY(0px);
+  box-shadow: 0 1px 2px rgba(4, 172, 156, 0.1);
 }
 
 button:focus,
 button:focus-visible {
   outline: 3px solid rgba(4, 172, 156, 0.5);
   outline-offset: 2px;
+}
+
+/* Add form element hover states around line 70-80 */
+input, select, textarea {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input:hover, select:hover, textarea:hover {
+  border-color: #a3e0dc !important;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: #04ac9c !important;
+  box-shadow: 0 0 0 3px rgba(4, 172, 156, 0.25) !important;
 }
 
 /* Add focus styles for interactive elements */
@@ -81,32 +106,58 @@ input:focus, select:focus, textarea:focus {
 /* Utility classes with forced colors */
 @layer components {
   .btn {
-    @apply px-4 py-2 rounded-md font-medium transition-colors;
+    @apply px-4 py-2 rounded-md font-medium transition-all duration-200;
   }
   
   .btn-primary {
-    @apply bg-primary-600 text-white hover:bg-primary-700;
-    color: white !important;
+    @apply bg-primary-600 text-white border border-transparent;
+  }
+  
+  .btn-primary:hover {
+    @apply bg-primary-700 shadow-md -translate-y-0.5;
+  }
+  
+  .btn-primary:active {
+    @apply bg-primary-800 shadow-sm translate-y-0;
   }
   
   .btn-secondary {
-    @apply bg-primary-100 hover:bg-primary-200;
-    color: #04ac9c !important;
+    @apply bg-primary-100 text-primary-700 border border-transparent;
+  }
+  
+  .btn-secondary:hover {
+    @apply bg-primary-200 shadow-md -translate-y-0.5;
+  }
+  
+  .btn-secondary:active {
+    @apply bg-primary-300 shadow-sm translate-y-0;
   }
   
   .btn-success {
-    @apply bg-green-600 hover:bg-green-700;
-    color: white !important;
+    @apply bg-green-600 text-white border border-transparent;
+  }
+  
+  .btn-success:hover {
+    @apply bg-green-700 shadow-md -translate-y-0.5;
   }
   
   .btn-danger {
-    @apply bg-red-600 hover:bg-red-700;
-    color: white !important;
+    @apply bg-red-600 text-white border border-transparent;
+  }
+  
+  .btn-danger:hover {
+    @apply bg-red-700 shadow-md -translate-y-0.5;
   }
   
   /* Card with slight teal border */
   .card {
     @apply bg-white rounded-lg shadow-md overflow-hidden border border-primary-100;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .card.hoverable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(4, 172, 156, 0.1);
   }
   
   /* Update form inputs to use the new colors */
@@ -141,6 +192,23 @@ input:focus, select:focus, textarea:focus {
   .status-closed {
     @apply bg-gray-100 text-gray-700;
   }
+
+  /* Add these classes for better notification styling */
+  .notification-item {
+    @apply block p-4 hover:bg-gray-50 border-b transition-colors;
+  }
+
+  .notification-item.unread {
+    @apply bg-blue-50;
+  }
+
+  .notification-title {
+    @apply text-sm font-medium text-gray-900;
+  }
+
+  .notification-meta {
+    @apply text-xs text-gray-500;
+  }
 }
 
 /* Force text colors in tables */
@@ -154,7 +222,7 @@ table td {
 
 /* Add table row hover styles */
 tr:hover td {
-  background-color: rgba(4, 172, 156, 0.05) !important;
+  background-color: rgba(4, 172, 156, 0.1) !important;
 }
 
 /* Add this to your CSS for accent backgrounds */
@@ -170,11 +238,140 @@ tr:hover td {
   color: #04ac9c !important; /* persian-green */
 }
 
-/* Add this to override all links within the navbar */
+/* Replace these CSS overrides to make colors consistent */
+/* Replace this section */
 nav a, nav button, nav span {
   color: white !important;
 }
 
-nav a:hover {
+/* With this more specific version */
+nav .text-white {
   color: white !important;
+}
+
+/* Add these rules to improve table appearance */
+table {
+  @apply w-full text-sm text-left;
+}
+
+table thead th {
+  @apply px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider;
+}
+
+table tbody td {
+  @apply px-6 py-4 whitespace-nowrap;
+}
+
+/* Make the hover effect more subtle */
+tr:hover td {
+  background-color: rgba(4, 172, 156, 0.1) !important;
+}
+
+/* Add a nice transition */
+tr td {
+  transition: background-color 0.15s ease-in-out;
+}
+
+/* Add these navbar-specific hover styles */
+nav a:hover, nav button:hover {
+  background-color: #037a73 !important; /* Darker persian-green */
+  color: white !important;
+}
+
+/* Fix the notification hover state */
+.notification-item:hover {
+  background-color: #000000 !important;
+  border-left: 2px solid #000000;
+}
+
+/* Update these styles around line 218-230 */
+
+/* Notification bell styling */
+.notification-bell {
+  color: rgb(0, 0, 0) !important; /* White color for normal state */
+  transition: color 0.2s ease;
+}
+
+/* Fix the hover style for the bell */
+button:hover .notification-bell {
+  color: #000000 !important; /* Light teal on hover */
+}
+
+/* Make the badge more visible */
+.notification-badge {
+  background-color: #e53e3e !important; /* Bright red for visibility */
+  border: 2px solid #000000 !important; /* Dark border to make it pop */
+}
+
+/* Update table row hover around line 210-220 */
+tr {
+  transition: background-color 0.2s ease;
+}
+
+tr:hover td {
+  background-color: rgba(4, 172, 156, 0.05) !important;
+}
+
+/* Add highlighting for clickable rows */
+tr.clickable:hover td {
+  background-color: rgba(4, 172, 156, 0.1) !important;
+  cursor: pointer;
+}
+
+/* Update navbar specific hover styles around line 225-235 */
+/* Navbar links */
+nav a, nav button {
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+nav a:hover, nav button:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+}
+
+/* Active navbar items */
+nav a.active {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  color: white !important;
+}
+
+nav a.active:hover {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Update notification bell styling around line 240-250 */
+/* Notification bell styling */
+.notification-bell {
+  color: white !important;
+  transition: all 0.2s ease;
+}
+
+/* Fix the hover style for the bell */
+button:hover .notification-bell {
+  color: white !important;
+  opacity: 0.9;
+  transform: scale(1.1);
+}
+
+/* Make the badge more visible */
+.notification-badge {
+  background-color: #e53e3e !important; /* Bright red for visibility */
+  border: 2px solid #1a202c !important; /* Dark border to make it pop */
+  transition: transform 0.2s ease;
+}
+
+button:hover .notification-badge {
+  transform: scale(1.1);
+}
+
+/* Update notification item hover around line 230-240 */
+/* Fix the notification hover state */
+.notification-item {
+  border-left: 2px solid transparent;
+  transition: background-color 0.2s ease, border-left-color 0.2s ease;
+}
+
+.notification-item:hover {
+  background-color: #f3fafa !important;
+  border-left-color: #04ac9c;
 }

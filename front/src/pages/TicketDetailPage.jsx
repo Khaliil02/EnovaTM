@@ -162,7 +162,11 @@ const TicketDetailPage = () => {
   // Helper functions to get name by ID
   const getUserName = (userId) => {
     const foundUser = users.find(u => u.id === userId);
-    return foundUser ? foundUser.name : 'Unknown User';
+    if (!foundUser) return 'Unknown User';
+    
+    return foundUser.first_name && foundUser.last_name ? 
+      `${foundUser.first_name} ${foundUser.last_name}` : 
+      (foundUser.name || 'Unknown User');
   };
   
   const getDepartmentName = (deptId) => {
@@ -349,11 +353,15 @@ const TicketDetailPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
               <h3 className="text-sm font-medium text-gray-500">Created By</h3>
-              <p className="mt-1">{ticket.created_by ? getUserName(ticket.created_by) : 'Unknown'}</p>
+              <div className="mt-1">{getUserName(ticket.created_by)}</div>
             </div>
             <div>
               <h3 className="text-sm font-medium text-gray-500">Assigned To</h3>
-              <p className="mt-1">{ticket.assigned_to ? getUserName(ticket.assigned_to) : 'Unassigned'}</p>
+              {ticket.assigned_to ? (
+                <div className="mt-1">{getUserName(ticket.assigned_to)}</div>
+              ) : (
+                <p className="text-sm text-gray-500 italic">Not assigned</p>
+              )}
             </div>
             <div>
               <h3 className="text-sm font-medium text-gray-500">Source Department</h3>

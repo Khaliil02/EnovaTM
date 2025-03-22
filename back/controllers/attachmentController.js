@@ -67,18 +67,6 @@ const getTicketAttachments = async (req, res) => {
 const downloadAttachment = async (req, res) => {
   try {
     const { id } = req.params;
-    // For requests coming from direct download links
-    const tokenFromQuery = req.query.token;
-    
-    // If using token from query and not already authenticated via middleware
-    if (tokenFromQuery && !req.user) {
-      try {
-        const decoded = jwt.verify(tokenFromQuery, process.env.JWT_SECRET);
-        req.user = decoded;
-      } catch (err) {
-        return res.status(401).json({ error: 'Invalid token' });
-      }
-    }
     
     const attachment = await getAttachmentById(id);
     if (!attachment) {

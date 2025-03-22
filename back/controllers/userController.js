@@ -5,12 +5,27 @@ const {
   updateUser,
   deleteUser,
 } = require('../models/userModel');
+const pool = require('../config/db'); // Add this import
 
 const getAllUsers = async (req, res) => {
   try {
+    // Option 1: Use the model function if it returns the right data
     const users = await getUsers();
     res.json(users);
+    
+    // OR Option 2: Keep the direct query if needed
+    /*
+    const query = `
+      SELECT u.*, d.name as department_name 
+      FROM users u
+      LEFT JOIN departments d ON u.department_id = d.id
+    `;
+    
+    const result = await pool.query(query);
+    res.json(result.rows);
+    */
   } catch (err) {
+    console.error('Error getting users:', err);
     res.status(500).json({ error: err.message });
   }
 };
