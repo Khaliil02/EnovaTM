@@ -22,10 +22,20 @@ const getTicketAttachments = async (ticketId) => {
   return response;
 };
 
-const downloadAttachment = (attachmentId, filename) => {
-  // For downloads, we need to include the token in the URL or open in a new tab
-  const token = localStorage.getItem('token');
-  window.open(`${api.defaults.baseURL}/attachments/${attachmentId}/download?token=${token}`, '_blank');
+const downloadAttachment = async (attachmentId) => {
+  try {
+    // Get token from localStorage
+    const token = localStorage.getItem('token');
+    
+    // Include the token in the URL as a query parameter
+    const downloadUrl = `${api.defaults.baseURL}/attachments/${attachmentId}/download?token=${token}`;
+    
+    // Open in a new tab/window
+    window.open(downloadUrl, '_blank');
+  } catch (error) {
+    console.error('Error downloading attachment:', error);
+    throw error;
+  }
 };
 
 const deleteAttachment = async (attachmentId) => {

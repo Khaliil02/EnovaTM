@@ -6,7 +6,13 @@ const getUsers = async () => {
 };
 
 const getUserById = async (id) => {
-  const result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+  const query = `
+    SELECT u.*, d.name as department_name 
+    FROM users u
+    LEFT JOIN departments d ON u.department_id = d.id
+    WHERE u.id = $1
+  `;
+  const result = await pool.query(query, [id]);
   return result.rows[0];
 };
 
@@ -43,11 +49,38 @@ const getUserDepartment = async (userId) => {
   return departmentId;
 };
 
+const getUsersByDepartment = async (departmentId) => {
+  try {
+    const result = await pool.query(
+      'SELECT id FROM users WHERE department_id = $1',
+      [departmentId]
+    );
+    console.log(`Found ${result.rows.length} users in department ${departmentId}`);
+    return result.rows;
+  } catch (err) {
+    console.error("Error getting users by department:", err);
+    return [];
+  }
+};
+
+// Make sure the getAllUsers function returns all needed user fields
+const getAllUsers = async () => {
+  const query = `
+    SELECT u.*, d.name as department_name 
+    FROM users u
+    LEFT JOIN departments d ON u.department_id = d.id
+  `;
+  const result = await pool.query(query);
+  return result.rows;
+};
+
 module.exports = {
   getUsers,
   getUserById,
   createUser,
   updateUser,
   deleteUser,
-  getUserDepartment
+  getUserDepartment,
+  getUsersByDepartment,
+  getAllUsers
 };

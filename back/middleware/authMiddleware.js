@@ -16,7 +16,30 @@ const authenticateUser = (req, res, next) => {
     return res.status(401).json({ error: 'Access denied. No token provided.' });
   }
 
-  const token = authHeader.split(' ')[1];
+  try {
+    // Get token
+    const token = authHeader.split(' ')[1];
+    
+    // Verify token using the correct secret
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Add user info to request
+    req.user = decoded;
+    
+    next();
+  } catch (err) {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+};
+
+// Create a separate middleware for attachment download that supports query tokens
+const authenticateDownload = (req, res, next) => {
+  // Get token from query parameter
+  const token = req.query.token;
+  
+  if (!token) {
+    return res.status(401).json({ error: 'Access denied. No token provided.' });
+  }
 
   try {
     // Verify token
@@ -41,5 +64,6 @@ const requireAdmin = (req, res, next) => {
 
 module.exports = {
   authenticateUser,
+  authenticateDownload,
   requireAdmin
 };

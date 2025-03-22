@@ -1,6 +1,7 @@
 import { useContext } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
 
 // Layouts
 import Layout from './components/layout/Layout';
@@ -43,70 +44,74 @@ const AdminRoute = ({ children }) => {
 function App() {
   return (
     <AuthProvider>
-      <Routes>
-        <Route path="/" element={<Layout><HomePage /></Layout>} />
-        <Route path="/login" element={<Layout><LoginPage /></Layout>} />
-        <Route path="/register" element={<Layout><RegisterPage /></Layout>} />
-        
-        {/* Protected Routes */}
-        <Route 
-          path="/dashboard" 
-          element={
-            <ProtectedRoute>
-              <Layout><DashboardPage /></Layout>
-            </ProtectedRoute>
-          } 
-        />
-        
-        <Route 
-          path="/tickets" 
-          element={
-            <ProtectedRoute>
-              <Layout><TicketsPage /></Layout>
-            </ProtectedRoute>
-          } 
-        />
-        
-        <Route 
-          path="/tickets/new" 
-          element={
-            <ProtectedRoute>
-              <Layout><CreateTicketPage /></Layout>
-            </ProtectedRoute>
-          } 
-        />
-        
-        <Route 
-          path="/tickets/:id" 
-          element={
-            <ProtectedRoute>
-              <Layout><TicketDetailPage /></Layout>
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Admin Routes */}
-        <Route 
-          path="/users" 
-          element={
-            <AdminRoute>
-              <Layout><UsersPage /></Layout>
-            </AdminRoute>
-          } 
-        />
-        
-        <Route 
-          path="/departments" 
-          element={
-            <AdminRoute>
-              <Layout><DepartmentsPage /></Layout>
-            </AdminRoute>
-          } 
-        />
-        
-        {/* 404 Page */}
-        <Route path="*" element={<Layout><NotFoundPage /></Layout>} />
-      </Routes>
+      <NotificationProvider>
+        <Layout>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            
+            {/* Protected Routes */}
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <DashboardPage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/tickets" 
+              element={
+                <ProtectedRoute>
+                  <TicketsPage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/tickets/new" 
+              element={
+                <ProtectedRoute>
+                  <CreateTicketPage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/tickets/:id" 
+              element={
+                <ProtectedRoute>
+                  <TicketDetailPage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Admin Routes */}
+            <Route 
+              path="/users" 
+              element={
+                <AdminRoute>
+                  <UsersPage />
+                </AdminRoute>
+              } 
+            />
+            
+            <Route 
+              path="/departments" 
+              element={
+                <AdminRoute>
+                  <DepartmentsPage />
+                </AdminRoute>
+              } 
+            />
+            
+            {/* 404 Page */}
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </Layout>
+      </NotificationProvider>
     </AuthProvider>
   );
 }

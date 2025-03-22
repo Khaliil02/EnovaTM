@@ -13,6 +13,7 @@ const {
 } = require('../models/ticketModel');
 
 const { getUserDepartment } = require('../models/userModel');
+const { createTicketStatusNotification, createNewTicketNotification } = require('./notificationController');
 
 const getAllTickets = async (req, res) => {
   try {
@@ -63,41 +64,66 @@ const getTicketsByPriority = async (req, res) => {
 };
 
 const addTicket = async (req, res) => {
-  const { title, description, priority, user_id, destination_department_id } = req.body;
-  
-  // Basic validation
-  if (!title || !description || !priority || !user_id || !destination_department_id) {
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
+  const { title, description, priority, destination_department_id } = req.body;
   
   try {
+    // Get the user ID from the authenticated user
+    const userId = req.user.id;
+    
     // Auto-determine the source department from user's department
-    const source_department_id = await getUserDepartment(user_id);
+    const source_department_id = await getUserDepartment(userId);
     
     const newTicket = await createTicket(
       title, 
       description, 
       priority,
-      user_id, 
+      userId, 
       source_department_id,
       destination_department_id
     );
+    
+    // Get the io instance
+    const io = req.app.get('io');
+    
+    // Create notifications
+    await createNewTicketNotification(newTicket.id, userId, io);
+    
     res.status(201).json(newTicket);
   } catch (err) {
+    console.error("Error creating ticket:", err);
     res.status(500).json({ error: err.message });
   }
 };
 
 // Simplified modifyTicketStatus function
 const modifyTicketStatus = async (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body;
-  
   try {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    // Get current ticket to know the old status
+    const ticket = await getTicketById(id);
+    if (!ticket) {
+      return res.status(404).json({ error: 'Ticket not found' });
+    }
+    
+    const oldStatus = ticket.status;
+    
+    // Update the ticket status
     const updatedTicket = await updateTicketStatus(id, status);
     
-    if (!updatedTicket) {
-      return res.status(404).json({ error: 'Ticket not found' });
+    // Get io instance
+    const io = req.app.get('io');
+    
+    // Create notifications if status has changed
+    if (oldStatus !== status) {
+      await createTicketStatusNotification(
+        id,
+        oldStatus,
+        status,
+        req.user.id,
+        io
+      );
     }
     
     res.json(updatedTicket);
@@ -222,6 +248,6 @@ module.exports = {
   modifyTicketStatus,
   removeTicket,
   assignTicketToUser,
-  escalateTicketToAdmin,  // Add this
-  adminReassignTicket     // Add this
+  escalateTicketToAdmin,
+  adminReassignTicket
 };

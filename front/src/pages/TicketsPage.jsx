@@ -16,7 +16,8 @@ const TicketsPage = () => {
     status: searchParams.get('status') || '',
     priority: '',
     searchTerm: '',
-    assignedToMe: searchParams.get('assigned_to_me') === 'true'
+    assignedToMe: searchParams.get('assigned_to_me') === 'true',
+    department: searchParams.get('department') || '' // Added department filter
   });
   
   const { user } = useContext(AuthContext);
@@ -77,6 +78,15 @@ const TicketsPage = () => {
         result = result.filter(ticket => ticket.assigned_to === user.id);
       }
       
+      // Filter by department
+      if (filters.department) {
+        const deptId = String(filters.department);
+        result = result.filter(ticket => 
+          String(ticket.destination_department_id) === deptId || 
+          String(ticket.source_department_id) === deptId
+        );
+      }
+      
       // Filter by search term (in title or description)
       if (filters.searchTerm) {
         const term = filters.searchTerm.toLowerCase();
@@ -97,9 +107,10 @@ const TicketsPage = () => {
     const params = new URLSearchParams();
     if (filters.status) params.set('status', filters.status);
     if (filters.assignedToMe) params.set('assigned_to_me', 'true');
+    if (filters.department) params.set('department', filters.department);
     
     setSearchParams(params);
-  }, [filters.status, filters.assignedToMe, setSearchParams]);
+  }, [filters.status, filters.assignedToMe, filters.department, setSearchParams]);
   
   const handleFilterChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -109,9 +120,14 @@ const TicketsPage = () => {
     }));
   };
   
+  // Fixed getUserName function
   const getUserName = (userId) => {
-    const user = users.find(u => u.id === userId);
-    return user ? user.name : 'Unknown User';
+    const foundUser = users.find(u => u.id === userId);
+    if (!foundUser) return 'Unknown User';
+    
+    return foundUser.first_name && foundUser.last_name ? 
+      `${foundUser.first_name} ${foundUser.last_name}` : 
+      (foundUser.name || 'Unknown User');
   };
   
   const getDepartmentName = (deptId) => {
@@ -153,6 +169,25 @@ const TicketsPage = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Search field at the top for better visibility */}
+          <div className="md:col-span-4">
+            <label htmlFor="searchTerm" className="block text-sm font-medium text-gray-700 mb-1">
+              Search
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                id="searchTerm"
+                name="searchTerm"
+                placeholder="Search tickets..."
+                className="w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 pl-10"
+                value={filters.searchTerm}
+                onChange={handleFilterChange}
+              />
+              <FiSearch className="absolute left-3 top-3 text-gray-400" />
+            </div>
+          </div>
+          
           <div>
             <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
               Status
@@ -192,21 +227,23 @@ const TicketsPage = () => {
           </div>
           
           <div>
-            <label htmlFor="searchTerm" className="block text-sm font-medium text-gray-700 mb-1">
-              Search
+            <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-1">
+              Department
             </label>
-            <div className="relative">
-              <input
-                type="text"
-                id="searchTerm"
-                name="searchTerm"
-                placeholder="Search tickets..."
-                className="w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 pl-10"
-                value={filters.searchTerm}
-                onChange={handleFilterChange}
-              />
-              <FiSearch className="absolute left-3 top-3 text-gray-400" />
-            </div>
+            <select
+              id="department"
+              name="department"
+              className="w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
+              value={filters.department}
+              onChange={handleFilterChange}
+            >
+              <option value="">All Departments</option>
+              {departments.map(dept => (
+                <option key={dept.id} value={dept.id}>
+                  {dept.name}
+                </option>
+              ))}
+            </select>
           </div>
           
           <div className="flex items-end">
@@ -249,7 +286,10 @@ const TicketsPage = () => {
                   Assigned To
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Department
+                  Source Dept
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Destination Dept
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Created
@@ -291,7 +331,10 @@ const TicketsPage = () => {
                       {getUserName(ticket.created_by)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {ticket.assigned_to ? getUserName(ticket.assigned_to) : '—'}
+                      {ticket.assigned_to ? getUserName(ticket.assigned_to) : '_ _ _'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {getDepartmentName(ticket.source_department_id)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getDepartmentName(ticket.destination_department_id)}
@@ -303,7 +346,7 @@ const TicketsPage = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan="9" className="px-6 py-12 text-center text-gray-500">
                     No tickets found matching your filters
                   </td>
                 </tr>

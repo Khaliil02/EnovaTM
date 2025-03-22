@@ -100,14 +100,14 @@ const DashboardPage = () => {
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div className="lg:col-span-2">
-          <div className="card p-6">
+          <div className="card p-6 h-full">
             <h2 className="text-lg font-bold mb-4">Recent Tickets</h2>
             <RecentTickets tickets={recentTickets} />
           </div>
         </div>
         
         <div className="lg:col-span-1">
-          <div className="card p-6">
+          <div className="card p-6 h-full">
             <h2 className="text-lg font-bold mb-4">Tickets by Priority</h2>
             <TicketPriorityChart tickets={tickets} />
           </div>
