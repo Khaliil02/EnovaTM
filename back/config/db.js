@@ -50,7 +50,7 @@ pool.query('SELECT NOW()', (err, res) => {
   }
 });
 
-// Export both the pool and the test function
+// Make sure your exports look like this at the bottom:
 module.exports = {
   query: (text, params) => pool.query(text, params),
   getClient: () => pool.connect(),

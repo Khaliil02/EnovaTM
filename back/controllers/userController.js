@@ -5,7 +5,7 @@ const {
   updateUser,
   deleteUser,
 } = require('../models/userModel');
-const pool = require('../config/db'); // Add this import
+const db = require('../config/db'); // Fix variable name to match usage
 
 const getAllUsers = async (req, res) => {
   try {
@@ -86,10 +86,98 @@ const removeUser = async (req, res) => {
   }
 };
 
+const updateUserProfile = async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('Updating profile for user ID:', id);
+    console.log('Request body:', req.body);
+    console.log('Request file:', req.file);
+    
+    // Ensure user can only modify their own profile unless admin
+    if (req.user.id !== parseInt(id) && !req.user.is_admin) {
+      return res.status(403).json({ error: 'Unauthorized to edit this profile' });
+    }
+    
+    // Get basic profile data and preferences
+    const { first_name, last_name, email, phone, preferences } = req.body;
+    console.log('Preferences received:', preferences);
+    
+    // Parse preferences if it's a string
+    let parsedPreferences = preferences;
+    if (preferences && typeof preferences === 'string') {
+      try {
+        parsedPreferences = JSON.parse(preferences);
+        console.log('Parsed preferences:', parsedPreferences);
+      } catch (err) {
+        console.error('Error parsing preferences:', err);
+      }
+    }
+    
+    // Start a transaction
+    const client = await db.getClient();
+    
+    try {
+      await client.query('BEGIN');
+      
+      // Update basic profile info
+      const updateQuery = `
+        UPDATE users 
+        SET 
+          first_name = COALESCE($1, first_name),
+          last_name = COALESCE($2, last_name),
+          email = COALESCE($3, email),
+          phone = COALESCE($4, phone),
+          preferences = COALESCE($5, preferences),
+          updated_at = NOW()
+        WHERE id = $6
+        RETURNING *
+      `;
+      
+      const values = [
+        first_name || null,
+        last_name || null,
+        email || null,
+        phone || null,
+        parsedPreferences || null,
+        id
+      ];
+      
+      const result = await client.query(updateQuery, values);
+      
+      // Handle avatar upload if exists
+      if (req.file) {
+        const avatarPath = `/uploads/avatars/${req.file.filename}`;
+        await client.query(
+          'UPDATE users SET avatar_url = $1 WHERE id = $2',
+          [avatarPath, id]
+        );
+        
+        // Add avatar URL to returned user
+        result.rows[0].avatar_url = avatarPath;
+      }
+      
+      await client.query('COMMIT');
+      
+      // Return updated user
+      delete result.rows[0].password; // Don't return password
+      res.json(result.rows[0]);
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error('Error updating user profile:', err);
+    res.status(500).json({ error: 'Failed to update profile: ' + err.message });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getUser,
   addUser,
   modifyUser,
   removeUser,
+  updateUserProfile  // Add this line
 };

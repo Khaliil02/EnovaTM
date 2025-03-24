@@ -62,6 +62,73 @@ const removeComment = async (req, res) => {
     }
 };
 
+// Add this function to createComment
+const notifyAboutComment = async (req, comment, ticket) => {
+  try {
+    const userId = req.user.id;
+    const userName = `${req.user.first_name || ''} ${req.user.last_name || ''}`.trim() || req.user.username;
+    
+    // Notify ticket owner if different from commenter
+    if (ticket.created_by && ticket.created_by !== userId) {
+      const notification = {
+        user_id: ticket.created_by,
+        message: `${userName} commented on ticket #${ticket.id}`,
+        ticket_id: ticket.id
+      };
+      
+      await createNotificationAndEmit(req, notification);
+    }
+    
+    // Notify assigned user if different from commenter
+    if (ticket.assigned_to && ticket.assigned_to !== userId && ticket.assigned_to !== ticket.created_by) {
+      const notification = {
+        user_id: ticket.assigned_to,
+        message: `${userName} commented on ticket #${ticket.id} assigned to you`,
+        ticket_id: ticket.id
+      };
+      
+      await createNotificationAndEmit(req, notification);
+    }
+  } catch (error) {
+    console.error('Error sending comment notifications:', error);
+    // Don't throw - notifications are secondary to comment creation
+  }
+};
+
+// Helper function to create notification and emit via socket
+const createNotificationAndEmit = async (req, notificationData) => {
+  try {
+    const result = await db.query(
+      `INSERT INTO notifications (user_id, message, ticket_id, is_read, created_at)
+       VALUES ($1, $2, $3, false, NOW())
+       RETURNING *`,
+      [notificationData.user_id, notificationData.message, notificationData.ticket_id]
+    );
+    
+    const notification = result.rows[0];
+    
+    // Add ticket title for frontend display
+    if (notificationData.ticket_id) {
+      const ticketResult = await db.query(
+        'SELECT title FROM tickets WHERE id = $1',
+        [notificationData.ticket_id]
+      );
+      
+      if (ticketResult.rows.length > 0) {
+        notification.ticket_title = ticketResult.rows[0].title;
+      }
+    }
+    
+    // Emit via socket
+    req.app.get('sendNotification')(notificationData.user_id, notification);
+    
+    return notification;
+  } catch (error) {
+    console.error('Error creating notification:', error);
+    return null;
+  }
+};
+
 module.exports = {
     getTicketComments,
     addComment,

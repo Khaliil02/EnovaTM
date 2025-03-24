@@ -18,6 +18,9 @@ import CreateTicketPage from './pages/CreateTicketPage';
 import UsersPage from './pages/UsersPage';
 import DepartmentsPage from './pages/DepartmentsPage';
 import NotFoundPage from './pages/NotFoundPage';
+import UserProfilePage from './pages/UserProfilePage';
+import UserSettingsPage from './pages/UserSettingsPage';
+import AllNotificationsPage from './pages/AllNotificationsPage';
 
 // Tailwind imports
 import './index.css';
@@ -86,6 +89,33 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <TicketDetailPage />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/profile" 
+                element={
+                  <ProtectedRoute>
+                    <UserProfilePage />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/settings" 
+                element={
+                  <ProtectedRoute>
+                    <UserSettingsPage />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/all-notifications" 
+                element={
+                  <ProtectedRoute>
+                    <AllNotificationsPage />
                   </ProtectedRoute>
                 } 
               />

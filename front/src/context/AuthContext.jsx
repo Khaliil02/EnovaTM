@@ -9,6 +9,17 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const [theme, setTheme] = useState(() => {
+    // Get theme from user preferences or default to light
+    const userTheme = user?.preferences?.theme || 'light';
+    
+    if (userTheme === 'system') {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    
+    return userTheme;
+  });
+
   useEffect(() => {
     // Check if user info is in localStorage
     const storedUser = localStorage.getItem('user');
@@ -21,6 +32,14 @@ export const AuthProvider = ({ children }) => {
     
     setLoading(false);
   }, []);
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
 
   const login = async (email, password) => {
     setLoading(true);
@@ -102,7 +121,25 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateUser = (userData) => {
+    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
+  };
+
   const isAuthenticated = !!user;
+
+  const contextValue = {
+    isAuthenticated,
+    user,
+    loading,
+    login,
+    logout,
+    register,
+    updateUser,
+    theme,
+    setTheme,
+    isAdmin: user?.is_admin
+  };
 
   return (
     <AuthContext.Provider 
@@ -115,7 +152,10 @@ export const AuthProvider = ({ children }) => {
         register, 
         isAuthenticated,
         isAdmin: user?.is_admin,
-        checkAuthStatus
+        checkAuthStatus,
+        theme,
+        setTheme,
+        updateUser
       }}
     >
       {children}

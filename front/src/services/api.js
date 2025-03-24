@@ -63,6 +63,31 @@ api.interceptors.response.use(
   }
 );
 
+// Add response interceptor for error handling
+api.interceptors.response.use(
+  response => response,
+  error => {
+    const { response } = error;
+    
+    // Handle authentication errors
+    if (response && response.status === 401) {
+      // Clear auth data
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      
+      // Redirect to login page
+      window.location.href = '/login?session=expired';
+    }
+    
+    // Handle general server errors
+    if (response && response.status >= 500) {
+      console.error('Server error:', error);
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
 export const invalidateCache = () => {
   cache.clear();
 };
@@ -82,6 +107,16 @@ export const userApi = {
   getById: (id) => api.get(`/users/${id}`),
   create: (data) => api.post('/users', data),
   update: (id, data) => api.put(`/users/${id}`, data),
+  updateProfile: (id, data) => {
+    console.log('API Request: updateProfile', id, data);
+    
+    // Check if data is FormData
+    const headers = data instanceof FormData ? {
+      'Content-Type': 'multipart/form-data'
+    } : {};
+    
+    return api.put(`/users/${id}/profile`, data, { headers });
+  },
   delete: (id) => api.delete(`/users/${id}`)
 };
 
@@ -108,6 +143,17 @@ export const commentApi = {
   getByTicket: (ticketId) => api.get(`/comments/ticket/${ticketId}`),
   create: (ticketId, content) => api.post(`/comments/ticket/${ticketId}`, { content }),
   delete: (commentId) => api.delete(`/comments/${commentId}`)
+};
+
+// Update your notification API endpoints:
+
+export const notificationApi = {
+  getAll: () => api.get('/notifications'),
+  getUnreadCount: () => api.get('/notifications/unread-count'),
+  markAsRead: (id) => api.put(`/notifications/${id}/read`),
+  markAllAsRead: () => api.put('/notifications/mark-all-read'),
+  create: (data) => api.post('/notifications', data),
+  delete: (id) => api.delete(`/notifications/${id}`),
 };
 
 export default api;

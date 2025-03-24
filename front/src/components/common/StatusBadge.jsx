@@ -8,35 +8,56 @@ import React from 'react';
  */
 const StatusBadge = ({ status, type = 'status' }) => {
   const getStatusStyles = () => {
-    // Status styles mapping
+    // Status styles using CSS variables
     if (type === 'status') {
-      return {
-        open: 'bg-yellow-100 text-yellow-800',
-        in_progress: 'bg-blue-100 text-blue-800',
-        escalated: 'bg-red-100 text-red-800',
-        closed: 'bg-green-100 text-green-800'
-      }[status] || 'bg-gray-100 text-gray-800';
+      switch(status?.toLowerCase()) {
+        case 'open':
+          return 'bg-warning-100 text-warning-700';
+        case 'in_progress':
+          return 'bg-info-100 text-info-700';
+        case 'escalated':
+          return 'bg-error-100 text-error-700';
+        case 'closed':
+          return 'bg-success-100 text-success-700';
+        default:
+          return 'bg-gray-100 text-gray-800';
+      }
     } 
-    // Priority styles mapping
-    return {
-      low: 'bg-green-100 text-green-800',
-      medium: 'bg-blue-100 text-blue-800',
-      high: 'bg-orange-100 text-orange-800',
-      urgent: 'bg-red-100 text-red-800'
-    }[status] || 'bg-gray-100 text-gray-800';
+    // Priority styles using CSS variables
+    switch(status?.toLowerCase()) {
+      case 'low':
+        return 'bg-success-100 text-success-700';
+      case 'medium':
+        return 'bg-info-100 text-info-700';
+      case 'high':
+        return 'bg-warning-100 text-warning-700';
+      case 'urgent':
+        return 'bg-error-100 text-error-700';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
   };
 
-  // Format status label (e.g., "in_progress" -> "In Progress")
-  const formatLabel = (status) => {
-    if (status === 'in_progress') return 'In Progress';
+  // Format status for display
+  const formatStatus = () => {
+    if (!status) return 'Unknown';
+    
+    // Handle statuses with underscores
+    if (status.includes('_')) {
+      return status.split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    }
+    
+    // Otherwise just capitalize the first letter
     return status.charAt(0).toUpperCase() + status.slice(1);
   };
 
   return (
-    <span className={`px-2 py-1 text-xs rounded-full ${getStatusStyles()}`}>
-      {formatLabel(status)}
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusStyles()}`}>
+      {formatStatus()}
     </span>
   );
 };
 
-export default React.memo(StatusBadge);
+export default StatusBadge;

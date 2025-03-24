@@ -14,6 +14,7 @@ const {
 
 const { getUserDepartment } = require('../models/userModel');
 const { createTicketStatusNotification, createNewTicketNotification } = require('./notificationController');
+const db = require('../config/db');
 
 const getAllTickets = async (req, res) => {
   try {
@@ -241,6 +242,105 @@ const adminReassignTicket = async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
+};
+
+// Add this function inside your updateTicket function
+const notifyUsersOfUpdate = async (req, ticket, oldTicket) => {
+  try {
+    // Notify assigned user if changed
+    if (ticket.assigned_to && ticket.assigned_to !== oldTicket.assigned_to) {
+      const notification = {
+        user_id: ticket.assigned_to,
+        message: `Ticket #${ticket.id} has been assigned to you`,
+        ticket_id: ticket.id
+      };
+      
+      await createNotificationAndEmit(req, notification);
+    }
+    
+    // Notify if status changed
+    if (ticket.status !== oldTicket.status) {
+      const statusMessage = `Ticket #${ticket.id} status changed to ${formatStatus(ticket.status)}`;
+      
+      // Notify ticket creator
+      if (ticket.created_by) {
+        const notification = {
+          user_id: ticket.created_by,
+          message: statusMessage,
+          ticket_id: ticket.id
+        };
+        
+        await createNotificationAndEmit(req, notification);
+      }
+    }
+    
+    // Notify if escalated
+    if (ticket.status === 'escalated' && oldTicket.status !== 'escalated') {
+      // Find admins to notify
+      const adminResult = await db.query(
+        `SELECT id FROM users WHERE role = 'admin'`
+      );
+      
+      const admins = adminResult.rows;
+      const message = `Ticket #${ticket.id} has been escalated and requires attention`;
+      
+      // Notify all admins
+      for (const admin of admins) {
+        const notification = {
+          user_id: admin.id,
+          message,
+          ticket_id: ticket.id
+        };
+        
+        await createNotificationAndEmit(req, notification);
+      }
+    }
+  } catch (error) {
+    console.error('Error sending ticket update notifications:', error);
+    // Don't throw - notifications are secondary to ticket updates
+  }
+};
+
+// Helper function to create notification and emit via socket
+const createNotificationAndEmit = async (req, notificationData) => {
+  try {
+    const result = await db.query(
+      `INSERT INTO notifications (user_id, message, ticket_id, is_read, created_at)
+       VALUES ($1, $2, $3, false, NOW())
+       RETURNING *`,
+      [notificationData.user_id, notificationData.message, notificationData.ticket_id]
+    );
+    
+    const notification = result.rows[0];
+    
+    // Add ticket title for frontend display
+    if (notificationData.ticket_id) {
+      const ticketResult = await db.query(
+        'SELECT title FROM tickets WHERE id = $1',
+        [notificationData.ticket_id]
+      );
+      
+      if (ticketResult.rows.length > 0) {
+        notification.ticket_title = ticketResult.rows[0].title;
+      }
+    }
+    
+    // Emit via socket
+    req.app.get('sendNotification')(notificationData.user_id, notification);
+    
+    return notification;
+  } catch (error) {
+    console.error('Error creating notification:', error);
+    return null;
+  }
+};
+
+// Helper to format status for messages
+const formatStatus = (status) => {
+  switch (status) {
+    case 'in_progress': return 'In Progress';
+    default: return status.charAt(0).toUpperCase() + status.slice(1);
+  }
 };
 
 module.exports = {
