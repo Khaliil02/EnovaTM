@@ -108,11 +108,11 @@ export const userApi = {
   create: (data) => api.post('/users', data),
   update: (id, data) => api.put(`/users/${id}`, data),
   updateProfile: (id, data) => {
-    console.log('API Request: updateProfile', id, data);
+    console.log('API Request: updateProfile', id, typeof data);
     
-    // Check if data is FormData
+    // Check if data is FormData and ensure proper headers
     const headers = data instanceof FormData ? {
-      'Content-Type': 'multipart/form-data'
+      'Content-Type': 'multipart/form-data' 
     } : {};
     
     return api.put(`/users/${id}/profile`, data, { headers });

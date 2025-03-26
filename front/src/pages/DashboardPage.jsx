@@ -47,6 +47,43 @@ const DashboardPage = () => {
     key: 'selection'
   });
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Add better error handling
+        const [ticketsResponse, departmentsResponse, usersResponse] = await Promise.all([
+          ticketApi.getAll().catch(err => {
+            console.error('Error fetching tickets:', err);
+            return { data: [] };
+          }),
+          departmentApi.getAll().catch(err => {
+            console.error('Error fetching departments:', err);
+            return { data: [] };
+          }),
+          userApi.getAll().catch(err => {
+            console.error('Error fetching users:', err);
+            return { data: [] };
+          })
+        ]);
+        
+        setTickets(ticketsResponse.data || []);
+        setDepartments(departmentsResponse.data || []);
+        setUsers(usersResponse.data || []);
+        
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError('Failed to load dashboard data. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
+
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -97,6 +134,29 @@ const DashboardPage = () => {
     fetchData();
   }, [fetchData]);
 
+  useEffect(() => {
+    // Add this debugging check
+    if (tickets.length > 0) {
+      console.log('DEBUG: First ticket example:', {
+        id: tickets[0].id,
+        creation_date: tickets[0].creation_date,
+        last_updated: tickets[0].last_updated,
+        resolution_date: tickets[0].resolution_date || 'N/A',
+        has_resolution_date: !!tickets[0].resolution_date,
+        has_last_updated: !!tickets[0].last_updated
+      });
+      
+      // Count tickets with each field
+      const withResolutionDate = tickets.filter(t => !!t.resolution_date).length;
+      const withLastUpdated = tickets.filter(t => !!t.last_updated).length;
+      console.log('DEBUG: Field availability stats:', {
+        total_tickets: tickets.length,
+        with_resolution_date: withResolutionDate,
+        with_last_updated: withLastUpdated
+      });
+    }
+  }, [tickets]);
+
   // Calculate ticket stats based on status
   const ticketStats = {
     total: tickets.length,
@@ -145,8 +205,9 @@ const DashboardPage = () => {
     // Fill with actual data
     filteredTickets.forEach(ticket => {
       const createdDate = ticket.creation_date ? ticket.creation_date.split('T')[0] : null;
-      const closedDate = ticket.status === 'closed' && ticket.updated_at ? 
-        ticket.updated_at.split('T')[0] : null;
+      const closedDate = ticket.status === 'closed' && 
+        (ticket.resolution_date || ticket.last_updated) ? 
+        (ticket.resolution_date || ticket.last_updated).split('T')[0] : null;
       
       if (createdDate && dates[createdDate]) dates[createdDate].created++;
       if (closedDate && dates[closedDate]) dates[closedDate].closed++;
@@ -192,27 +253,28 @@ const resolutionTimeData = (() => {
     console.log(`DEBUG: Processing ticket #${ticket.id}, status=${ticket.status}, priority=${rawPriority}`);
     
     // Make sure we have dates
-    if (!ticket.creation_date || !ticket.updated_at) {
+    if (!ticket.creation_date || (!ticket.last_updated && !ticket.resolution_date)) {
       console.log(`DEBUG: Ticket #${ticket.id} missing dates:`, {
         creation_date: ticket.creation_date,
-        updated_at: ticket.updated_at
+        resolution_date: ticket.resolution_date,
+        last_updated: ticket.last_updated
       });
       return; // Skip this ticket
     }
     
     // Parse dates
     const creationDate = new Date(ticket.creation_date);
-    const resolutionDate = new Date(ticket.updated_at);
-    
+
+    // Use resolution_date if available, otherwise last_updated
+    const resolutionDate = ticket.resolution_date 
+      ? new Date(ticket.resolution_date) 
+      : new Date(ticket.last_updated);
+
     // Skip invalid dates
-    if (isNaN(creationDate.getTime()) || isNaN(resolutionDate.getTime())) {
-      console.log(`DEBUG: Ticket #${ticket.id} has invalid dates:`, {
-        creation: ticket.creation_date,
-        resolution: ticket.updated_at
-      });
+    if (isNaN(creationDate.getTime()) || isNaN(resolutionDate.getTime()) || resolutionDate <= creationDate) {
       return;
     }
-    
+
     // Calculate resolution time in hours (minimum 0)
     const diffMs = Math.max(0, resolutionDate - creationDate);
     const hours = Math.round(diffMs / (1000 * 60 * 60));
@@ -422,12 +484,24 @@ const userPerformanceData = (() => {
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600">Welcome back, {user.first_name}!</p>
+        <p className="text-gray-600">Welcome back, {user.name?.split(' ')[0] || 'User'}!</p>
       </div>
       
       {error && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-md mb-6">
-          <p>{error}</p>
+        <div className="bg-red-50 text-red-600 p-6 rounded-lg mb-6 flex items-center">
+          <FiAlertCircle className="mr-3 flex-shrink-0 h-5 w-5" />
+          <div>
+            <p className="font-medium">{error}</p>
+            <p className="mt-1 text-sm">
+              Check that your backend server is running at {import.meta.env.VITE_API_URL || 'http://localhost:5000'} and that there are no errors in the console.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-3 px-4 py-2 bg-red-100 text-red-800 rounded-md text-sm hover:bg-red-200"
+            >
+              Reload Page
+            </button>
+          </div>
         </div>
       )}
       

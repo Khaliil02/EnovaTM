@@ -17,8 +17,7 @@ const UserProfilePage = () => {
   
   // Form data
   const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
+    name: '',
     email: '',
     phone: '',
     department_id: '',
@@ -41,10 +40,9 @@ const UserProfilePage = () => {
         setProfile(userData);
         setDepartments(departmentsResponse.data || []);
         
-        // Set form data from user profile
+        // Set form data from user profile with name field
         setFormData({
-          first_name: userData.first_name || '',
-          last_name: userData.last_name || '',
+          name: userData.name || '',
           email: userData.email || '',
           phone: userData.phone || '',
           department_id: userData.department_id || '',
@@ -59,8 +57,8 @@ const UserProfilePage = () => {
         
         setError(null);
       } catch (err) {
-        console.error('Error fetching profile:', err);
-        setError('Failed to load profile data');
+        console.error('Error fetching user profile:', err);
+        setError('Failed to load profile');
       } finally {
         setLoading(false);
       }
@@ -96,16 +94,14 @@ const UserProfilePage = () => {
       const data = new FormData();
       
       // Add basic profile fields
-      data.append('first_name', formData.first_name);
-      data.append('last_name', formData.last_name);
+      data.append('name', formData.name);
       data.append('email', formData.email);
       data.append('phone', formData.phone);
-      data.append('department_id', formData.department_id);
       
       // Add preferences as JSON
       const preferences = {
-        theme: formData.theme,
-        notifications_enabled: formData.notifications_enabled,
+        theme: formData.theme || 'light',
+        notifications_enabled: formData.notifications_enabled === true,
         sound_enabled: true // Include sound setting
       };
       data.append('preferences', JSON.stringify(preferences));
@@ -137,7 +133,7 @@ const UserProfilePage = () => {
       }
     } catch (err) {
       console.error('Error updating profile:', err);
-      setError(`Failed to update profile: ${err.message || 'Unknown error'}`);
+      setError(`Failed to update profile: ${err.response?.data?.error || err.message || 'Unknown error'}`);
     } finally {
       setSaving(false);
     }
@@ -195,7 +191,7 @@ const UserProfilePage = () => {
             
             <div className="flex-1 text-center sm:text-left">
               <h2 className="text-xl font-bold">
-                {profile.first_name} {profile.last_name}
+                {profile.name || 'User'}
               </h2>
               <p className="text-gray-500">
                 {departments.find(d => d.id === profile.department_id)?.name || 'No Department'}
@@ -217,28 +213,14 @@ const UserProfilePage = () => {
         <form onSubmit={handleSubmit} className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
-              <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-1">
-                First Name
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                Full Name
               </label>
               <input
                 type="text"
-                id="first_name"
-                name="first_name"
-                value={formData.first_name}
-                onChange={handleChange}
-                className="w-full border border-gray-300 rounded-md shadow-sm px-4 py-2 focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 mb-1">
-                Last Name
-              </label>
-              <input
-                type="text"
-                id="last_name"
-                name="last_name"
-                value={formData.last_name}
+                id="name"
+                name="name"
+                value={formData.name}
                 onChange={handleChange}
                 className="w-full border border-gray-300 rounded-md shadow-sm px-4 py-2 focus:ring-primary-500 focus:border-primary-500"
               />
@@ -253,20 +235,6 @@ const UserProfilePage = () => {
                 id="email"
                 name="email"
                 value={formData.email}
-                onChange={handleChange}
-                className="w-full border border-gray-300 rounded-md shadow-sm px-4 py-2 focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-                Phone Number
-              </label>
-              <input
-                type="tel"
-                id="phone"
-                name="phone"
-                value={formData.phone}
                 onChange={handleChange}
                 className="w-full border border-gray-300 rounded-md shadow-sm px-4 py-2 focus:ring-primary-500 focus:border-primary-500"
               />

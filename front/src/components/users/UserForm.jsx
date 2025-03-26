@@ -68,7 +68,7 @@ const UserForm = ({ user, departments, onSave, onCancel }) => {
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
-            <label htmlFor="name" className="form-label">Name *</label>
+            <label htmlFor="name" className="form-label">Full Name *</label>
             <input
               type="text"
               id="name"

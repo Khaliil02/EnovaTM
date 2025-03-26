@@ -41,12 +41,23 @@ export const AuthProvider = ({ children }) => {
     }
   }, [theme]);
 
+  const processUser = (userData) => {
+    // If we need to derive name from first_name/last_name (for backward compatibility)
+    if (!userData.name && (userData.first_name || userData.last_name)) {
+      userData.name = `${userData.first_name || ''} ${userData.last_name || ''}`.trim();
+    }
+    
+    // Rest of the function...
+  };
+
   const login = async (email, password) => {
     setLoading(true);
     try {
       console.log('Attempting login with:', email);
       const response = await api.post('/auth/login', { email, password });
       const { token, user } = response.data;
+      
+      processUser(user);
       
       // Store in localStorage
       localStorage.setItem('token', token);

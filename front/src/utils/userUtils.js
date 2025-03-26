@@ -7,18 +7,10 @@
 export const getUserName = (userId, users) => {
   if (!userId || !users || !users.length) return 'Unknown User';
   
-  // Find the user by ID
   const foundUser = users.find(u => u.id === userId);
   if (!foundUser) return 'Unknown User';
   
-  // Handle different user data formats
-  if (foundUser.first_name && foundUser.last_name) {
-    return `${foundUser.first_name} ${foundUser.last_name}`;
-  } else if (foundUser.name) {
-    return foundUser.name;
-  }
-  
-  return 'Unknown User';
+  return foundUser.name || 'Unknown User';
 };
 
 // Create a memoized version for performance

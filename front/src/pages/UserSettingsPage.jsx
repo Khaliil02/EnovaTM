@@ -29,16 +29,16 @@ const UserSettingsPage = () => {
       setLoading(true);
       setError(null);
       
-      // Construct preferences object
+      // Construct preferences object with all values explicitly set
       const preferences = {
-        theme,
-        notifications_enabled: notifications,
-        email_notifications: emailNotifications,
-        sound_enabled: sound, // Make sure this is included
-        language
+        theme: theme || 'light',
+        notifications_enabled: notifications === true,
+        email_notifications: emailNotifications === true,
+        sound_enabled: sound === true, 
+        language: language || 'en'
       };
 
-      // Create FormData object instead of using JSON
+      // Create FormData object
       const formData = new FormData();
       formData.append('preferences', JSON.stringify(preferences));
       
@@ -48,19 +48,22 @@ const UserSettingsPage = () => {
       const response = await userApi.updateProfile(user.id, formData);
       console.log('API response:', response);
 
-      // Update local user context with the full response data
+      // Update local user context
       if (response && response.data) {
         updateUser({
           ...user,
-          preferences
+          preferences: {
+            ...user.preferences,
+            ...preferences
+          }
         });
 
         setSuccess(true);
         setTimeout(() => setSuccess(false), 3000);
       }
     } catch (err) {
-      console.error('Failed to save preferences:', err);
-      setError('Failed to save preferences. Please try again.');
+      console.error('Preferences update error:', err);
+      setError(`Failed to save preferences: ${err.response?.data?.error || err.message}`);
     } finally {
       setLoading(false);
     }

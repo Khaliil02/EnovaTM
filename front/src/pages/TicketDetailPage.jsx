@@ -2,7 +2,7 @@ import { useState, useEffect, useContext, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { ticketApi, userApi, departmentApi } from '../services/api';
-import { FiAlertCircle, FiLoader, FiArrowLeft, FiCheck, FiAlertTriangle } from 'react-icons/fi';
+import { FiAlertCircle, FiLoader, FiArrowLeft, FiCheck, FiAlertTriangle, FiCpu } from 'react-icons/fi';
 import CommentSection from '../components/tickets/CommentSection';
 import { 
   getTicketAttachments, 
@@ -158,7 +158,7 @@ const TicketDetailPage = () => {
       }
     }
   };
-  
+
   // Helper functions to get name by ID
   const getUserName = (userId) => {
     const foundUser = users.find(u => u.id === userId);
@@ -513,51 +513,50 @@ const TicketDetailPage = () => {
             </div>
           )}
           
-          {/* Add the CommentSection component */}
-          <CommentSection ticketId={id} ticketDetails={ticket} />
-
-          {/* Attachments */}
-          <div className="mt-6">
-            <h3 className="text-lg font-medium">Attachments</h3>
-            {attachments.length === 0 ? (
-              <p className="text-gray-500 italic">No attachments</p>
-            ) : (
-              <ul className="mt-2 border rounded divide-y">
-                {attachments.map(attachment => (
-                  <li key={attachment.id} className="p-3 flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">{attachment.original_filename}</p>
-                      <p className="text-sm text-gray-600">
-                        {(attachment.file_size / 1024).toFixed(2)} KB • 
-                        Uploaded by {getUserName(attachment.uploaded_by)}
-                      </p>
-                    </div>
-                    <div>
-                      <button
-                        onClick={() => downloadAttachment(attachment.id, attachment.original_filename)}
-                        className="text-blue-600 hover:text-blue-800 mr-3"
-                      >
-                        Download
-                      </button>
-                      {(user.id === ticket.created_by || 
-                        user.id === ticket.assigned_to || 
-                        user.is_admin) && (
-                        <button
-                          onClick={() => handleDeleteAttachment(attachment.id)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
         </div>
       </div>
+      
+      {/* Attachments Section */}
+      <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
+        <div className="border-b border-gray-200 px-6 py-4">
+          <h2 className="text-lg font-medium text-gray-900">Attachments</h2>
+        </div>
+        <div className="px-6 py-4">
+          {attachments.length > 0 ? (
+            <ul className="space-y-3">
+              {attachments.map(attachment => (
+                <li key={attachment.id} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <FiCpu className="text-gray-500" />
+                    <span>{attachment.file_name}</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <button 
+                      onClick={() => downloadAttachment(attachment.id)}
+                      className="btn btn-secondary"
+                    >
+                      Download
+                    </button>
+                    {user.is_admin && (
+                      <button 
+                        onClick={() => handleDeleteAttachment(attachment.id)}
+                        className="btn bg-red-600 text-white hover:bg-red-700"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-gray-500">No attachments found.</p>
+          )}
+        </div>
+      </div>
+      
+      {/* Comment Section */}
+      <CommentSection ticketId={ticket.id} ticketDetails={ticket} />
     </div>
   );
 };

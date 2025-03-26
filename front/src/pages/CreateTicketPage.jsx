@@ -2,8 +2,8 @@ import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { ticketApi, departmentApi } from '../services/api';
-import { FiArrowLeft, FiAlertCircle } from 'react-icons/fi';
-import { uploadAttachment } from '../services/attachmentService';
+import { FiArrowLeft, FiAlertCircle, FiLoader } from "react-icons/fi";
+import { uploadAttachment } from "../services/attachmentService";
 
 const CreateTicketPage = () => {
   const navigate = useNavigate();

@@ -262,7 +262,7 @@ const Navbar = () => {
                 )}
                 <div className="border-t border-primary-700 pt-2 mt-2">
                   <div className="px-3 py-2 text-white font-medium">
-                    {user?.name || `${user?.first_name} ${user?.last_name}`}
+                    {user?.name || 'User'}
                   </div>
                   <Link
                     to="/profile"
