@@ -66,7 +66,7 @@ const removeComment = async (req, res) => {
 const notifyAboutComment = async (req, comment, ticket) => {
   try {
     const userId = req.user.id;
-    const userName = `${req.user.first_name || ''} ${req.user.last_name || ''}`.trim() || req.user.username;
+    const userName = req.user.name || 'Unknown User';
     
     // Notify ticket owner if different from commenter
     if (ticket.created_by && ticket.created_by !== userId) {

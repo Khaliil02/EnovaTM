@@ -7,12 +7,12 @@ const {
   getTicketsByPriority,
   addTicket,
   modifyTicketStatus,
-  removeTicket,
+  removeTicket,  // Make sure this is imported
   assignTicketToUser,
   escalateTicketToAdmin,
   adminReassignTicket
 } = require('../controllers/ticketController');
-const { authenticateUser, requireAdmin } = require('../middleware/authMiddleware');
+const { authenticateUser, authenticateAdmin } = require('../middleware/authMiddleware');
 const { requireDestinationDepartment, requireDestinationDepartmentAdmin } = require('../middleware/ticketMiddleware');
 
 // Apply authentication middleware to all routes
@@ -31,7 +31,7 @@ router.put('/:id/status', requireDestinationDepartment, modifyTicketStatus);
 router.put('/:id/escalate', requireDestinationDepartment, escalateTicketToAdmin);
 
 // Admin-only routes
-router.delete('/:id', requireAdmin, removeTicket);
+router.delete('/:id', authenticateAdmin, removeTicket);
 router.put('/:id/reassign', requireDestinationDepartmentAdmin, adminReassignTicket);
 
 module.exports = router;

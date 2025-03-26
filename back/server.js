@@ -100,6 +100,16 @@ app.get('/api/socket-test', (req, res) => {
   res.json({ status: 'Socket.io server running' });
 });
 
+// Add this error handling middleware at the end of your middleware chain
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  console.error('Stack trace:', err.stack);
+  res.status(500).json({
+    error: 'Server error: ' + err.message,
+    path: req.path
+  });
+});
+
 // Update server start
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

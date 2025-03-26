@@ -1,11 +1,22 @@
 const pool = require('../config/db');
 
-const getTickets = async () => {
-  const result = await pool.query(`
-    SELECT * FROM tickets
-    ORDER BY creation_date DESC
-  `);
-  return result.rows;
+const getAllTickets = async () => {
+  try {
+    const result = await pool.query(`
+      SELECT t.*, 
+             sd.name as source_department_name,
+             dd.name as destination_department_name
+      FROM tickets t
+      LEFT JOIN departments sd ON t.source_department_id = sd.id
+      LEFT JOIN departments dd ON t.destination_department_id = dd.id
+      ORDER BY t.creation_date DESC
+    `);
+    
+    return result.rows;
+  } catch (err) {
+    console.error('Error in getAllTickets:', err);
+    throw err;
+  }
 };
 
 const getTicketById = async (id) => {
@@ -24,11 +35,27 @@ const getTicketByPriority = async (priority) => {
     return result.rows;
 };
 
+// Update the createTicket function to set SLA based on priority
 const createTicket = async (title, description, priority, user_id, source_department_id, destination_department_id) => {
+    // Calculate SLA due date based on priority
+    let slaDays = 7; // Default for low priority
+    
+    if (priority === 'medium') slaDays = 3;
+    else if (priority === 'high') slaDays = 1;
+    else if (priority === 'urgent') slaDays = 0.5; // 12 hours
+    
     const result = await pool.query(
-        'INSERT INTO tickets (title, description, priority, status, created_by, source_department_id, destination_department_id, creation_date, last_updated) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) RETURNING *',
-        [title, description, priority, 'open', user_id, source_department_id, destination_department_id]
+        `INSERT INTO tickets 
+         (title, description, priority, status, created_by, 
+          source_department_id, destination_department_id, 
+          creation_date, last_updated, sla_due_date) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW(), 
+                 NOW() + interval '${slaDays} days') 
+         RETURNING *`,
+        [title, description, priority, 'open', user_id, 
+         source_department_id, destination_department_id]
     );
+    
     return result.rows[0];
 };
 
@@ -57,8 +84,14 @@ const assignTicket = async (id, userId) => {
 
 const closeTicket = async (id, userId) => {
     const result = await pool.query(
-        'UPDATE tickets SET status = $1, closed_by = $2, resolution_date = NOW(), last_updated = NOW() WHERE id = $3 RETURNING *',
-        ['closed', userId, id]
+        `UPDATE tickets 
+         SET status = 'closed', 
+             last_updated = NOW(),
+             resolution_date = NOW(),
+             closed_by = $1
+         WHERE id = $2 
+         RETURNING *`,
+        [userId, id]
     );
     
     return result.rows[0];
@@ -107,7 +140,7 @@ const reassignEscalatedTicket = async (id, newAssigneeId, newDepartmentId, admin
 };
 
 module.exports = {
-    getTickets,
+    getAllTickets,
     getTicketById,
     getTicketByStatus,
     getTicketByPriority,

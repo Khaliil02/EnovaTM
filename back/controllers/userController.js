@@ -86,6 +86,7 @@ const removeUser = async (req, res) => {
   }
 };
 
+// Update the updateUserProfile function to handle name instead of first_name/last_name
 const updateUserProfile = async (req, res) => {
   try {
     const { id } = req.params;
@@ -99,7 +100,7 @@ const updateUserProfile = async (req, res) => {
     }
     
     // Get basic profile data and preferences
-    const { first_name, last_name, email, phone, preferences } = req.body;
+    const { name, email, phone, preferences } = req.body;
     console.log('Preferences received:', preferences);
     
     // Parse preferences if it's a string
@@ -110,6 +111,8 @@ const updateUserProfile = async (req, res) => {
         console.log('Parsed preferences:', parsedPreferences);
       } catch (err) {
         console.error('Error parsing preferences:', err);
+        // Return a 400 error instead of proceeding with invalid preferences
+        return res.status(400).json({ error: 'Invalid preferences format' });
       }
     }
     
@@ -119,23 +122,28 @@ const updateUserProfile = async (req, res) => {
     try {
       await client.query('BEGIN');
       
-      // Update basic profile info
+      // First verify user exists
+      const checkUser = await client.query('SELECT * FROM users WHERE id = $1', [id]);
+      if (checkUser.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      // Update basic profile info with name field
       const updateQuery = `
         UPDATE users 
         SET 
-          first_name = COALESCE($1, first_name),
-          last_name = COALESCE($2, last_name),
-          email = COALESCE($3, email),
-          phone = COALESCE($4, phone),
-          preferences = COALESCE($5, preferences),
+          name = COALESCE($1, name),
+          email = COALESCE($2, email),
+          phone = COALESCE($3, phone),
+          preferences = COALESCE($4, preferences),
           updated_at = NOW()
-        WHERE id = $6
+        WHERE id = $5
         RETURNING *
       `;
       
       const values = [
-        first_name || null,
-        last_name || null,
+        name || null,
         email || null,
         phone || null,
         parsedPreferences || null,
@@ -145,8 +153,9 @@ const updateUserProfile = async (req, res) => {
       const result = await client.query(updateQuery, values);
       
       // Handle avatar upload if exists
+      let avatarPath = null;
       if (req.file) {
-        const avatarPath = `/uploads/avatars/${req.file.filename}`;
+        avatarPath = `/uploads/avatars/${req.file.filename}`;
         await client.query(
           'UPDATE users SET avatar_url = $1 WHERE id = $2',
           [avatarPath, id]
@@ -163,7 +172,8 @@ const updateUserProfile = async (req, res) => {
       res.json(result.rows[0]);
     } catch (err) {
       await client.query('ROLLBACK');
-      throw err;
+      console.error('Database error during profile update:', err);
+      res.status(500).json({ error: 'Database error: ' + err.message });
     } finally {
       client.release();
     }

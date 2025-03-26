@@ -63,23 +63,39 @@ const getTicketAttachments = async (req, res) => {
   }
 };
 
-// Download an attachment
+// Update the downloadAttachment function
 const downloadAttachment = async (req, res) => {
   try {
     const { id } = req.params;
+    console.log(`Attempting to download attachment ${id}`);
     
+    // Get attachment details
     const attachment = await getAttachmentById(id);
     if (!attachment) {
       return res.status(404).json({ error: 'Attachment not found' });
     }
     
+    const filePath = path.join(__dirname, '..', attachment.file_path);
+    console.log(`File path: ${filePath}`);
+    
     // Check if file exists
-    if (!fs.existsSync(attachment.file_path)) {
+    if (!fs.existsSync(filePath)) {
+      console.error(`File not found: ${filePath}`);
       return res.status(404).json({ error: 'File not found on server' });
     }
     
-    res.download(attachment.file_path, attachment.original_filename);
+    // Set Content-Disposition header for download
+    res.setHeader('Content-Disposition', `attachment; filename="${attachment.file_name}"`);
+    
+    // Send the file
+    res.sendFile(filePath, (err) => {
+      if (err) {
+        console.error('Error sending file:', err);
+        res.status(500).end();
+      }
+    });
   } catch (err) {
+    console.error('Error downloading attachment:', err);
     res.status(500).json({ error: err.message });
   }
 };

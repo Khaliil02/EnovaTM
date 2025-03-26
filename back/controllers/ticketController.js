@@ -1,5 +1,5 @@
 const {
-    getTickets,
+    getAllTickets, // Changed from getTickets to getAllTickets
     getTicketById,
     getTicketByStatus,
     getTicketByPriority,
@@ -8,24 +8,21 @@ const {
     deleteTicket,
     assignTicket,
     closeTicket,
-    escalateTicket,         // Add this
-    reassignEscalatedTicket // Add this
+    escalateTicket,
+    reassignEscalatedTicket
 } = require('../models/ticketModel');
 
 const { getUserDepartment } = require('../models/userModel');
 const { createTicketStatusNotification, createNewTicketNotification } = require('./notificationController');
 const db = require('../config/db');
 
-const getAllTickets = async (req, res) => {
+const getAllTicketsHandler = async (req, res) => {
   try {
-    // Use the existing getTickets function instead of pagination
-    const tickets = await getTickets();
-    
-    // Return tickets directly without pagination info
+    const tickets = await getAllTickets(); // Changed from getTickets() to getAllTickets()
     res.json(tickets);
   } catch (err) {
-    console.error('Error fetching tickets:', err);
-    res.status(500).json({ error: err.message });
+    console.error("Error in getAllTickets:", err);
+    res.status(500).json({ error: err.message || 'Failed to fetch tickets' });
   }
 };
 
@@ -90,13 +87,13 @@ const addTicket = async (req, res) => {
     // Get the io instance
     const io = req.app.get('io');
     
-    // Create notifications
+    // Create notifications (without AI references)
     await createNewTicketNotification(newTicket.id, userId, io);
     
     res.status(201).json(newTicket);
   } catch (err) {
     console.error("Error creating ticket:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message || 'Failed to create ticket' });
   }
 };
 
@@ -115,7 +112,14 @@ const modifyTicketStatus = async (req, res) => {
     const oldStatus = ticket.status;
     
     // Update the ticket status
-    const updatedTicket = await updateTicketStatus(id, status);
+    let updatedTicket;
+    if (status === 'closed') {
+      // Use closeTicket function when closing a ticket
+      updatedTicket = await closeTicket(id, userId);
+    } else {
+      // For other status changes, use the generic updateTicketStatus
+      updatedTicket = await updateTicketStatus(id, status);
+    }
     
     // Get io instance
     const io = req.app.get('io');
@@ -140,12 +144,16 @@ const modifyTicketStatus = async (req, res) => {
 const removeTicket = async (req, res) => {
   const { id } = req.params;
   try {
-    const deletedTicket = await deleteTicket(id);
-    if (!deletedTicket) {
+    // Use pool directly to ensure it works
+    const pool = require('../config/db');
+    const result = await pool.query('DELETE FROM tickets WHERE id = $1 RETURNING *', [id]);
+    
+    if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Ticket not found' });
     }
-    res.json(deletedTicket);
+    res.json(result.rows[0]);
   } catch (err) {
+    console.error('Error deleting ticket:', err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -344,7 +352,7 @@ const formatStatus = (status) => {
 };
 
 module.exports = {
-  getAllTickets,
+  getAllTickets: getAllTicketsHandler, // This maps the route handler to the correct name
   getTicket,
   getTicketsByStatus,
   getTicketsByPriority,

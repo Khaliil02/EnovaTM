@@ -16,14 +16,14 @@ const getUserById = async (id) => {
   return result.rows[0];
 };
 
-// Corrected implementation
+// Updated to use name field
 const createUser = async (name, email, is_admin, department_id) => {
   const result = await pool.query('INSERT INTO users (name, email, is_admin, department_id) VALUES ($1, $2, $3, $4) RETURNING *', 
     [name, email, is_admin, department_id]);
   return result.rows[0];
 };
 
-// Corrected implementation
+// Updated to use name field
 const updateUser = async (id, name, email, is_admin, department_id) => {
   const result = await pool.query('UPDATE users SET name = $1, email = $2, is_admin = $3, department_id = $4 WHERE id = $5 RETURNING *', 
     [name, email, is_admin, department_id, id]);
@@ -52,7 +52,7 @@ const getUserDepartment = async (userId) => {
 const getUsersByDepartment = async (departmentId) => {
   try {
     const result = await pool.query(
-      'SELECT id FROM users WHERE department_id = $1',
+      'SELECT * FROM users WHERE department_id = $1',
       [departmentId]
     );
     console.log(`Found ${result.rows.length} users in department ${departmentId}`);
