@@ -10,6 +10,19 @@ const {
 
 const { getTicketById } = require('../models/ticketModel');
 const { getUserById, getUsersByDepartment } = require('../models/userModel');
+const { sendNotificationEmail } = require('../services/emailService'); // Add this import
+const { getDepartmentById } = require('../models/departmentModel'); // Add this import
+
+// Add this helper function
+const getDepartmentName = async (departmentId) => {
+  try {
+    const department = await getDepartmentById(departmentId);
+    return department ? department.name : 'Unknown Department';
+  } catch (error) {
+    console.error('Error getting department name:', error);
+    return 'Unknown Department';
+  }
+};
 
 // Determine who should get notifications for a ticket
 const getTicketStakeholders = async (ticketId) => {
@@ -38,7 +51,7 @@ const getTicketStakeholders = async (ticketId) => {
   }
 };
 
-// Update this function too
+// Update this function to send emails
 const createTicketStatusNotification = async (ticketId, oldStatus, newStatus, updatedBy, io = null) => {
   try {
     const ticket = await getTicketById(ticketId);
@@ -66,6 +79,23 @@ const createTicketStatusNotification = async (ticketId, oldStatus, newStatus, up
       if (io) {
         io.to(`user:${userId}`).emit('newNotification', notification);
       }
+      
+      // Send email notification
+      try {
+        // Get user email
+        const user = await getUserById(userId);
+        if (user && user.email) {
+          await sendNotificationEmail(
+            user.email,
+            `Ticket Status Update: ${ticket.title}`,
+            message,
+            ticketId
+          );
+        }
+      } catch (emailError) {
+        console.error('Error sending email notification:', emailError);
+        // Continue even if email fails - notifications shouldn't break the app
+      }
     }
     
     return notifications;
@@ -75,7 +105,7 @@ const createTicketStatusNotification = async (ticketId, oldStatus, newStatus, up
   }
 };
 
-// Modify the createNewTicketNotification function to accept io directly
+// Modify the createNewTicketNotification function to send emails
 const createNewTicketNotification = async (ticketId, createdBy, io = null) => {
   try {
     console.log(`Creating notifications for new ticket ${ticketId} by user ${createdBy}`);
@@ -118,6 +148,29 @@ const createNewTicketNotification = async (ticketId, createdBy, io = null) => {
         io.to(`user:${userId}`).emit('newNotification', notification);
       } else {
         console.log('Socket.io not available for real-time notification');
+      }
+      
+      // Send email notification
+      try {
+        // Get user email
+        const user = await getUserById(userId);
+        if (user && user.email) {
+          await sendNotificationEmail(
+            user.email,
+            `New Ticket: ${ticket.title}`,
+            `A new ticket has been created that requires your attention: "${ticket.title}"
+            
+Priority: ${ticket.priority}
+Department: ${ticket.destination_department_id ? await getDepartmentName(ticket.destination_department_id) : 'Unknown'}
+            
+Description: ${ticket.description.substring(0, 200)}${ticket.description.length > 200 ? '...' : ''}`,
+            ticketId
+          );
+          console.log(`Email notification sent to ${user.email} for new ticket`);
+        }
+      } catch (emailError) {
+        console.error('Error sending email notification:', emailError);
+        // Continue even if email fails
       }
     }
     
