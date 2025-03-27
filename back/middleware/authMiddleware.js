@@ -1,55 +1,36 @@
 const jwt = require('jsonwebtoken');
+const { getUserById } = require('../models/userModel'); // Add this import
 
 // Ensure JWT_SECRET is properly set
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
 
-const authenticateUser = (req, res, next) => {
-  // Get token from header
-  const authHeader = req.headers.authorization;
-  
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Access denied. No token provided.' });
-  }
-
+const authenticateUser = async (req, res, next) => {
   try {
-    // Get token
-    const token = authHeader.split(' ')[1];
+    // Check for token in headers or query params for attachment viewing
+    const token = 
+      req.headers.authorization?.split(' ')[1] || 
+      req.query.token;
     
-    // Verify token using the correct secret
-    const decoded = jwt.verify(token, JWT_SECRET);
+    if (!token) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await getUserById(decoded.id);
     
-    // Add user info to request
-    req.user = decoded;
+    if (!user) {
+      return res.status(401).json({ error: 'User not found' });
+    }
     
+    req.user = user;
     next();
-  } catch (err) {
-    console.error('Token verification error:', err);
-    res.status(401).json({ error: 'Invalid token' });
+  } catch (error) {
+    return res.status(401).json({ error: 'Invalid token' });
   }
 };
 
-// Add this middleware for handling attachment downloads
-const authenticateDownload = (req, res, next) => {
-  // Get token from query parameter
-  const token = req.query.token;
-  
-  if (!token) {
-    return res.status(401).json({ error: 'Access denied. No token provided.' });
-  }
-
-  try {
-    // Verify token using the same JWT_SECRET used in authenticateUser
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
-    
-    // Add user info to request
-    req.user = decoded;
-    
-    next();
-  } catch (err) {
-    console.error('Token verification error:', err);
-    res.status(401).json({ error: 'Invalid token' });
-  }
-};
+// We can remove this middleware since we're not using it anymore
+// const authenticateDownload = (req, res, next) => { ... };
 
 const authenticateAdmin = (req, res, next) => {
   // First authenticate the user
@@ -64,6 +45,6 @@ const authenticateAdmin = (req, res, next) => {
 
 module.exports = {
   authenticateUser,
-  authenticateAdmin,
-  authenticateDownload
+  authenticateAdmin
+  // Remove authenticateDownload from exports
 };

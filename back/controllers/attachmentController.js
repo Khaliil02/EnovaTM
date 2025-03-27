@@ -1,6 +1,5 @@
 const path = require('path');
 const fs = require('fs-extra');
-const jwt = require('jsonwebtoken');
 const {
   createAttachment,
   getAttachmentsByTicketId,
@@ -63,43 +62,6 @@ const getTicketAttachments = async (req, res) => {
   }
 };
 
-// Update the downloadAttachment function
-const downloadAttachment = async (req, res) => {
-  try {
-    const { id } = req.params;
-    console.log(`Attempting to download attachment ${id}`);
-    
-    // Get attachment details
-    const attachment = await getAttachmentById(id);
-    if (!attachment) {
-      return res.status(404).json({ error: 'Attachment not found' });
-    }
-    
-    const filePath = path.join(__dirname, '..', attachment.file_path);
-    console.log(`File path: ${filePath}`);
-    
-    // Check if file exists
-    if (!fs.existsSync(filePath)) {
-      console.error(`File not found: ${filePath}`);
-      return res.status(404).json({ error: 'File not found on server' });
-    }
-    
-    // Set Content-Disposition header for download
-    res.setHeader('Content-Disposition', `attachment; filename="${attachment.file_name}"`);
-    
-    // Send the file
-    res.sendFile(filePath, (err) => {
-      if (err) {
-        console.error('Error sending file:', err);
-        res.status(500).end();
-      }
-    });
-  } catch (err) {
-    console.error('Error downloading attachment:', err);
-    res.status(500).json({ error: err.message });
-  }
-};
-
 // Delete an attachment
 const removeAttachment = async (req, res) => {
   try {
@@ -140,9 +102,37 @@ const removeAttachment = async (req, res) => {
   }
 };
 
+// View an attachment file in the browser
+const getAttachmentFile = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Get attachment details
+    const attachment = await getAttachmentById(id);
+    if (!attachment) {
+      return res.status(404).json({ error: 'Attachment not found' });
+    }
+    
+    // Check if file exists
+    if (!fs.existsSync(attachment.file_path)) {
+      return res.status(404).json({ error: 'File not found on server' });
+    }
+    
+    // Set content type header based on the file's mime type
+    res.setHeader('Content-Type', attachment.mime_type);
+    res.setHeader('Content-Disposition', `inline; filename="${attachment.original_filename}"`);
+    
+    // Stream the file to the response
+    const fileStream = fs.createReadStream(attachment.file_path);
+    fileStream.pipe(res);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 module.exports = {
   uploadAttachment,
   getTicketAttachments,
-  downloadAttachment,
-  removeAttachment
+  removeAttachment,
+  getAttachmentFile
 };

@@ -4,18 +4,16 @@ const upload = require('../config/uploadConfig');
 const {
   uploadAttachment,
   getTicketAttachments,
-  downloadAttachment,
-  removeAttachment
+  removeAttachment,
+  getAttachmentFile
 } = require('../controllers/attachmentController');
-const { authenticateUser, authenticateDownload } = require('../middleware/authMiddleware');
+const { authenticateUser } = require('../middleware/authMiddleware');
 
-// Apply authentication to most routes
+// Apply authentication to all routes
 router.use(authenticateUser);
 router.get('/ticket/:ticketId', getTicketAttachments);
 router.post('/ticket/:ticketId', upload.single('file'), uploadAttachment);
 router.delete('/:id', removeAttachment);
-
-// Special route for downloads that needs query param authentication
-router.get('/:id/download', authenticateDownload, downloadAttachment);
+router.get('/:id/view', getAttachmentFile); // Add this new route
 
 module.exports = router;
