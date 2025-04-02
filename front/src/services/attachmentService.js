@@ -22,19 +22,9 @@ const getTicketAttachments = async (ticketId) => {
   return response;
 };
 
-const downloadAttachment = async (attachmentId) => {
-  try {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      throw new Error('Authentication token not found');
-    }
-    
-    window.open(`${api.defaults.baseURL}/attachments/${attachmentId}/download?token=${token}`, '_blank');
-    return { success: true };
-  } catch (error) {
-    console.error('Error downloading attachment:', error);
-    throw error;
-  }
+// Get view URL for an attachment
+const getAttachmentViewUrl = (attachmentId) => {
+  return `${api.defaults.baseURL}/attachments/${attachmentId}/view`;
 };
 
 const deleteAttachment = async (attachmentId) => {
@@ -45,6 +35,6 @@ const deleteAttachment = async (attachmentId) => {
 export {
   uploadAttachment,
   getTicketAttachments,
-  downloadAttachment,
+  getAttachmentViewUrl,
   deleteAttachment
 };

@@ -28,29 +28,6 @@ const authenticateUser = (req, res, next) => {
   }
 };
 
-// Add this middleware for handling attachment downloads
-const authenticateDownload = (req, res, next) => {
-  // Get token from query parameter
-  const token = req.query.token;
-  
-  if (!token) {
-    return res.status(401).json({ error: 'Access denied. No token provided.' });
-  }
-
-  try {
-    // Verify token using the same JWT_SECRET used in authenticateUser
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
-    
-    // Add user info to request
-    req.user = decoded;
-    
-    next();
-  } catch (err) {
-    console.error('Token verification error:', err);
-    res.status(401).json({ error: 'Invalid token' });
-  }
-};
-
 const authenticateAdmin = (req, res, next) => {
   // First authenticate the user
   authenticateUser(req, res, () => {
@@ -64,6 +41,5 @@ const authenticateAdmin = (req, res, next) => {
 
 module.exports = {
   authenticateUser,
-  authenticateAdmin,
-  authenticateDownload
+  authenticateAdmin
 };

@@ -75,7 +75,9 @@ const downloadAttachment = async (req, res) => {
       return res.status(404).json({ error: 'Attachment not found' });
     }
     
-    const filePath = path.join(__dirname, '..', attachment.file_path);
+    // Fix the file path to use the actual path stored in the database
+    // Instead of trying to resolve it relative to the controller directory
+    const filePath = attachment.file_path;
     console.log(`File path: ${filePath}`);
     
     // Check if file exists
@@ -96,6 +98,42 @@ const downloadAttachment = async (req, res) => {
     });
   } catch (err) {
     console.error('Error downloading attachment:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Ensure this function is properly implemented
+const viewAttachment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Get attachment details
+    const attachment = await getAttachmentById(id);
+    if (!attachment) {
+      return res.status(404).json({ error: 'Attachment not found' });
+    }
+    
+    const filePath = attachment.file_path;
+    
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      console.error(`File not found: ${filePath}`);
+      return res.status(404).json({ error: 'File not found on server' });
+    }
+    
+    // Set appropriate Content-Type
+    res.setHeader('Content-Type', attachment.mime_type);
+    res.setHeader('Content-Disposition', `inline; filename="${attachment.original_filename}"`);
+    
+    // Send the file
+    res.sendFile(filePath, (err) => {
+      if (err) {
+        console.error('Error sending file:', err);
+        res.status(500).end();
+      }
+    });
+  } catch (err) {
+    console.error('Error viewing attachment:', err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -143,6 +181,6 @@ const removeAttachment = async (req, res) => {
 module.exports = {
   uploadAttachment,
   getTicketAttachments,
-  downloadAttachment,
-  removeAttachment
+  removeAttachment,
+  viewAttachment
 };

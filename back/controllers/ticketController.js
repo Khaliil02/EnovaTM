@@ -110,6 +110,8 @@ const modifyTicketStatus = async (req, res) => {
     }
     
     const oldStatus = ticket.status;
+    // Get the user ID from the authenticated user
+    const userId = req.user.id;
     
     // Update the ticket status
     let updatedTicket;
