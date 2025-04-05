@@ -9,6 +9,7 @@ import {
   FiCheck,
   FiAlertTriangle,
   FiCpu,
+  FiMessageCircle,
 } from "react-icons/fi";
 import CommentSection from "../components/tickets/CommentSection";
 import {
@@ -16,6 +17,7 @@ import {
   deleteAttachment,
 } from "../services/attachmentService";
 import AttachmentViewer from "../components/AttachmentViewer";
+import MessagingPanel from "../components/messaging/MessagingPanel";
 
 const TicketDetailPage = () => {
   const { id } = useParams();
@@ -33,6 +35,8 @@ const TicketDetailPage = () => {
   const [selectedDepartmentId, setSelectedDepartmentId] = useState("");
   const [departmentUsers, setDepartmentUsers] = useState([]);
   const [attachments, setAttachments] = useState([]);
+  const [showMessaging, setShowMessaging] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -250,6 +254,11 @@ const TicketDetailPage = () => {
     );
   }, [ticket, user.id, user.is_admin, user.department_id]);
 
+  const handleStartMessaging = (userId, userName) => {
+    setSelectedUser({ id: userId, name: userName });
+    setShowMessaging(true);
+  };
+
   if (loading && !ticket) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -431,12 +440,44 @@ const TicketDetailPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
               <h3 className="text-sm font-medium text-gray-500">Created By</h3>
-              <div className="mt-1">{getUserName(ticket.created_by)}</div>
+              <div className="mt-1 flex items-center">
+                <span>{getUserName(ticket.created_by)}</span>
+                {ticket.created_by !== user.id && (
+                  <button
+                    onClick={() =>
+                      handleStartMessaging(
+                        ticket.created_by,
+                        getUserName(ticket.created_by)
+                      )
+                    }
+                    className="ml-2 text-primary-600 hover:text-primary-800"
+                    title="Send message"
+                  >
+                    <FiMessageCircle />
+                  </button>
+                )}
+              </div>
             </div>
             <div>
               <h3 className="text-sm font-medium text-gray-500">Assigned To</h3>
               {ticket.assigned_to ? (
-                <div className="mt-1">{getUserName(ticket.assigned_to)}</div>
+                <div className="mt-1 flex items-center">
+                  <span>{getUserName(ticket.assigned_to)}</span>
+                  {ticket.assigned_to !== user.id && (
+                    <button
+                      onClick={() =>
+                        handleStartMessaging(
+                          ticket.assigned_to,
+                          getUserName(ticket.assigned_to)
+                        )
+                      }
+                      className="ml-2 text-primary-600 hover:text-primary-800"
+                      title="Send message"
+                    >
+                      <FiMessageCircle />
+                    </button>
+                  )}
+                </div>
               ) : (
                 <p className="text-sm text-gray-500 italic">Not assigned</p>
               )}
@@ -658,6 +699,17 @@ const TicketDetailPage = () => {
 
       {/* Comment Section */}
       <CommentSection ticketId={ticket.id} ticketDetails={ticket} />
+
+      {showMessaging && selectedUser && (
+        <div className="fixed bottom-4 right-4 z-50 w-80">
+          <MessagingPanel
+            ticketId={ticket.id}
+            recipientId={selectedUser.id}
+            recipientName={selectedUser.name}
+            onClose={() => setShowMessaging(false)}
+          />
+        </div>
+      )}
     </div>
   );
 };

@@ -156,4 +156,12 @@ export const notificationApi = {
   delete: (id) => api.delete(`/notifications/${id}`),
 };
 
+// Add to your existing exports
+export const messageApi = {
+  send: (ticketId, recipientId, content) => 
+    api.post('/messages', { ticketId, recipientId, content }),
+  getConversation: (ticketId, userId) => 
+    api.get(`/messages/ticket/${ticketId}/user/${userId}`)
+};
+
 export default api;

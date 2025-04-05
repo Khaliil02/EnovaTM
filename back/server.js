@@ -12,6 +12,7 @@ const authRoutes = require('./routes/authRoutes');
 const commentRoutes = require('./routes/commentRoutes');
 const attachmentRoutes = require('./routes/attachmentRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const messageRoutes = require('./routes/messageRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -34,6 +35,7 @@ app.use('/api/departments', departmentRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/attachments', attachmentRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/messages', messageRoutes);
 
 // Add this near your other routes
 
@@ -73,6 +75,15 @@ io.on('connection', (socket) => {
     console.log(`User ${userId} authenticated with socket ${socket.id}`);
     socket.join(`user:${userId}`);
     socket.emit('authenticated', { success: true });
+  });
+
+  // Add this handler for message typing status
+  socket.on('typing', ({ ticketId, senderId, recipientId }) => {
+    io.to(`user:${recipientId}`).emit('userTyping', { ticketId, senderId });
+  });
+  
+  socket.on('stoppedTyping', ({ ticketId, senderId, recipientId }) => {
+    io.to(`user:${recipientId}`).emit('userStoppedTyping', { ticketId, senderId });
   });
 
   // Handle disconnection
