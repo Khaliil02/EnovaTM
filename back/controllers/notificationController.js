@@ -10,6 +10,7 @@ const {
 
 const { getTicketById } = require('../models/ticketModel');
 const { getUserById, getUsersByDepartment } = require('../models/userModel');
+const { sendNotificationEmail } = require('../services/emailService');
 
 // Determine who should get notifications for a ticket
 const getTicketStakeholders = async (ticketId) => {
@@ -66,6 +67,21 @@ const createTicketStatusNotification = async (ticketId, oldStatus, newStatus, up
       if (io) {
         io.to(`user:${userId}`).emit('newNotification', notification);
       }
+      
+      // Send email notification
+      try {
+        const user = await getUserById(userId);
+        if (user && user.email) {
+          await sendNotificationEmail(
+            user.email,
+            `Ticket Status Changed: ${ticket.title}`,
+            message,
+            ticketId
+          );
+        }
+      } catch (emailError) {
+        console.error('Error sending email notification:', emailError);
+      }
     }
     
     return notifications;
@@ -108,6 +124,21 @@ const createNewTicketNotification = async (ticketId, createdBy, io = null) => {
       // Emit to socket if available
       if (io) {
         io.to(`user:${userId}`).emit('newNotification', notification);
+      }
+      
+      // Send email notification
+      try {
+        const user = await getUserById(userId);
+        if (user && user.email) {
+          await sendNotificationEmail(
+            user.email,
+            `New Ticket: ${ticket.title}`,
+            message,
+            ticketId
+          );
+        }
+      } catch (emailError) {
+        console.error('Error sending email notification:', emailError);
       }
     }
     

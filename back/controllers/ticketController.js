@@ -338,6 +338,28 @@ const createNotificationAndEmit = async (req, notificationData) => {
     // Emit via socket
     req.app.get('sendNotification')(notificationData.user_id, notification);
     
+    // Send email notification
+    try {
+      const { getUserById } = require('../models/userModel');
+      const { sendNotificationEmail } = require('../services/emailService');
+      
+      const user = await getUserById(notificationData.user_id);
+      if (user && user.email) {
+        const subject = notification.ticket_title ? 
+          `Ticket Update: ${notification.ticket_title}` : 
+          'EnovaTM Notification';
+          
+        await sendNotificationEmail(
+          user.email,
+          subject,
+          notificationData.message,
+          notificationData.ticket_id
+        );
+      }
+    } catch (emailError) {
+      console.error('Error sending email notification:', emailError);
+    }
+    
     return notification;
   } catch (error) {
     console.error('Error creating notification:', error);

@@ -3,6 +3,7 @@ const {
     createComment,
     deleteComment
 } = require('../models/commentModel');
+const db = require('../config/db');
 
 const getTicketComments = async (req, res) => {
     // Convert from camelCase parameter to a number (critical)
@@ -121,6 +122,28 @@ const createNotificationAndEmit = async (req, notificationData) => {
     
     // Emit via socket
     req.app.get('sendNotification')(notificationData.user_id, notification);
+    
+    // Send email notification
+    try {
+      const { getUserById } = require('../models/userModel');
+      const { sendNotificationEmail } = require('../services/emailService');
+      
+      const user = await getUserById(notificationData.user_id);
+      if (user && user.email) {
+        const subject = notification.ticket_title ? 
+          `New Comment on Ticket: ${notification.ticket_title}` : 
+          'EnovaTM Comment Notification';
+          
+        await sendNotificationEmail(
+          user.email,
+          subject,
+          notificationData.message,
+          notificationData.ticket_id
+        );
+      }
+    } catch (emailError) {
+      console.error('Error sending email notification:', emailError);
+    }
     
     return notification;
   } catch (error) {
