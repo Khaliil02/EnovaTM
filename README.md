@@ -9,6 +9,10 @@ Enova Ticket Manager is a modern full-stack web application designed to streamli
 ✅ Department management and ticket routing  
 ✅ File attachments for tickets  
 ✅ Search and filtering capabilities  
+✅ Direct messaging between users  
+✅ Comment system for tickets  
+✅ User preferences and theme settings  
+✅ Email notifications for ticket updates  
 ✅ Responsive design for desktop and mobile  
 ✅ Admin dashboard for system oversight
 
@@ -46,6 +50,7 @@ Enova Ticket Manager follows a modern client-server architecture:
 │   │   ├── context/       # React context providers
 │   │   ├── hooks/         # Custom React hooks
 │   │   ├── pages/         # Page components
+│   │   ├── services/      # Service utilities
 │   │   └── utils/         # Utility functions
 │   └── index.html         # HTML entry point
 │
@@ -53,8 +58,10 @@ Enova Ticket Manager follows a modern client-server architecture:
     ├── config/            # Configuration files
     ├── controllers/       # Request handlers
     ├── middleware/        # Express middleware
+    ├── migrations/        # Database migrations
     ├── models/            # Database models
     ├── routes/            # API route definitions
+    ├── services/          # Service utilities
     ├── uploads/           # File storage for attachments
     └── server.js          # Server entry point
 ```
@@ -133,6 +140,8 @@ The application will be available at **http://localhost:3000**.
 - **Tickets** (`/tickets`): List and manage all tickets
 - **Create Ticket** (`/tickets/new`): Create new support tickets
 - **Ticket Details** (`/tickets/:id`): View and manage specific tickets
+- **Messages** (`/messages`): Direct messaging between users
+- **Profile** (`/profile`): User profile and preference settings
 - **Users** (`/users`): Admin user management (admin only)
 - **Departments** (`/departments`): Department management (admin only)
 
@@ -145,6 +154,7 @@ The application will be available at **http://localhost:3000**.
 - `POST /api/users` → Create a new user
 - `PUT /api/users/:id` → Update a user
 - `DELETE /api/users/:id` → Delete a user
+- `PUT /api/users/:id/preferences` → Update user preferences
 
 ### 🎟️ Tickets
 
@@ -174,6 +184,22 @@ The application will be available at **http://localhost:3000**.
 - `PUT /api/notifications/:id/read` → Mark a notification as read
 - `PUT /api/notifications/read-all` → Mark all notifications as read
 
+### 💬 Messages
+
+- `GET /api/messages` → Retrieve user's messages
+- `GET /api/messages/:id` → Get a specific message
+- `POST /api/messages` → Send a new message
+- `PUT /api/messages/:id/read` → Mark a message as read
+- `DELETE /api/messages/:id` → Delete a message
+- `POST /api/messages/:id/attachments` → Add an attachment to a message
+
+### 💬 Comments
+
+- `GET /api/tickets/:ticketId/comments` → Get all comments for a ticket
+- `POST /api/tickets/:ticketId/comments` → Add a comment to a ticket
+- `PUT /api/comments/:id` → Update a comment
+- `DELETE /api/comments/:id` → Delete a comment
+
 ### 📋 Ticket History
 
 - `GET /api/history/ticket/:id` → Get the complete history of changes for a specific ticket
@@ -192,6 +218,7 @@ The application uses JWT (JSON Web Tokens) for authentication. Protected routes 
 - **Frontend**: React.js, Tailwind CSS, React Router, Axios
 - **Backend**: Node.js, Express.js, JWT
 - **Database**: PostgreSQL
+- **Email Service**: SMTP integration for notifications
 - **File Handling**: Multer, fs-extra
 
 ## 📄 License
