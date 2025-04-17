@@ -116,8 +116,8 @@ const modifyTicketStatus = async (req, res) => {
     // Update the ticket status
     let updatedTicket;
     if (status === 'closed') {
-      // Use closeTicket function when closing a ticket
-      updatedTicket = await closeTicket(id, userId);
+      // Fixed: Use req.user.id instead of userId
+      updatedTicket = await closeTicket(id, req.user.id);
     } else {
       // For other status changes, use the generic updateTicketStatus
       updatedTicket = await updateTicketStatus(id, status);

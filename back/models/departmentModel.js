@@ -8,8 +8,16 @@ const getDepartments = async () => {
 
 // Get department by id
 const getDepartmentById = async (id) => {
-  const result = await pool.query('SELECT * FROM departments WHERE id = $1', [id]);
-  return result.rows[0];
+  try {
+    const result = await pool.query(
+      'SELECT * FROM departments WHERE id = $1',
+      [id]
+    );
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error('Error in getDepartmentById:', error);
+    throw error;
+  }
 };
 
 // Create a new department
