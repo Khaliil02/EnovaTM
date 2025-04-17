@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { ticketApi, userApi, departmentApi } from "../services/api";
 import {
@@ -23,6 +23,7 @@ const TicketDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
+  const location = useLocation();
 
   const [ticket, setTicket] = useState(null);
   const [users, setUsers] = useState([]);
@@ -88,6 +89,37 @@ const TicketDetailPage = () => {
       setReassignUserId(""); // Reset selected user when department changes
     }
   }, [selectedDepartmentId, users]);
+
+  // Check if we should open messaging from a notification
+  useEffect(() => {
+    if (location.state?.openMessaging && ticket) {
+      // Find the right person to message based on the passed parameter or fallback logic
+      let targetUserId;
+
+      if (location.state.messageUserId) {
+        // If we have a specific user ID from a notification or message widget
+        targetUserId = location.state.messageUserId;
+      } else if (ticket.created_by === user.id) {
+        // If current user is creator, message the assignee
+        targetUserId = ticket.assigned_to;
+      } else {
+        // Otherwise message the creator
+        targetUserId = ticket.created_by;
+      }
+
+      // Only proceed if we found a valid user to message
+      if (targetUserId) {
+        const targetUser = users.find((u) => u.id === targetUserId);
+        if (targetUser) {
+          setSelectedUser({
+            id: targetUser.id,
+            name: targetUser.name || getUserName(targetUser.id),
+          });
+          setShowMessaging(true);
+        }
+      }
+    }
+  }, [location.state, ticket, users, user.id]);
 
   // Function to handle claiming a ticket
   const handleClaim = async () => {

@@ -38,7 +38,7 @@ const getTicketStakeholders = async (ticketId) => {
   }
 };
 
-// Update this function too
+// Create notifications for ticket status changes
 const createTicketStatusNotification = async (ticketId, oldStatus, newStatus, updatedBy, io = null) => {
   try {
     const ticket = await getTicketById(ticketId);
@@ -75,26 +75,20 @@ const createTicketStatusNotification = async (ticketId, oldStatus, newStatus, up
   }
 };
 
-// Modify the createNewTicketNotification function to accept io directly
+// Create notifications for new tickets
 const createNewTicketNotification = async (ticketId, createdBy, io = null) => {
   try {
-    console.log(`Creating notifications for new ticket ${ticketId} by user ${createdBy}`);
-    
     const ticket = await getTicketById(ticketId);
     if (!ticket) {
-      console.log('Ticket not found');
       throw new Error('Ticket not found');
     }
     
     const stakeholderIds = await getTicketStakeholders(ticketId);
-    console.log('All stakeholders:', stakeholderIds);
     
     // Don't notify the creator
     const recipientIds = stakeholderIds.filter(id => id != createdBy);
-    console.log('Notification recipients:', recipientIds);
     
     if (recipientIds.length === 0) {
-      console.log('No recipients to notify');
       return [];
     }
     
@@ -103,7 +97,6 @@ const createNewTicketNotification = async (ticketId, createdBy, io = null) => {
     // Create notifications for each recipient
     const notifications = [];
     for (const userId of recipientIds) {
-      console.log(`Creating notification for user ${userId}`);
       const notification = await createNotification(
         userId, 
         ticketId,
@@ -114,10 +107,7 @@ const createNewTicketNotification = async (ticketId, createdBy, io = null) => {
       
       // Emit to socket if available
       if (io) {
-        console.log(`Emitting notification to user:${userId}`);
         io.to(`user:${userId}`).emit('newNotification', notification);
-      } else {
-        console.log('Socket.io not available for real-time notification');
       }
     }
     
@@ -179,110 +169,21 @@ const markAllAsRead = async (req, res) => {
     const userId = req.user.id;
     await markAllNotificationsAsRead(userId);
     
-    return res.json({ message: 'All notifications marked as read' });
+    return res.json({ message: 'All notifications marked as read', success: true });
   } catch (error) {
     console.error('Error marking all notifications as read:', error);
     return res.status(500).json({ error: 'Server error' });
   }
 };
 
-// Get all notifications for a user
-exports.getNotificationsForUser = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    
-    const notifications = await db.query(
-      `SELECT * FROM notifications WHERE user_id = $1 ORDER BY created_at DESC`, 
-      [userId]
-    );
-    
-    res.json(notifications.rows);
-  } catch (error) {
-    console.error('Error fetching notifications:', error);
-    res.status(500).json({ error: 'Failed to fetch notifications' });
-  }
-};
-
-// Create a new notification
-exports.createNotification = async (req, res) => {
-  try {
-    const { user_id, message, ticket_id } = req.body;
-    
-    if (!user_id || !message) {
-      return res.status(400).json({ error: 'User ID and message are required' });
-    }
-    
-    const result = await db.query(
-      `INSERT INTO notifications (user_id, message, ticket_id, is_read, created_at)
-       VALUES ($1, $2, $3, false, NOW())
-       RETURNING *`,
-      [user_id, message, ticket_id]
-    );
-    
-    const notification = result.rows[0];
-    
-    res.status(201).json({ notification });
-  } catch (error) {
-    console.error('Error creating notification:', error);
-    res.status(500).json({ error: 'Failed to create notification' });
-  }
-};
-
-// Mark a notification as read
-exports.markAsRead = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const userId = req.user.id;
-    
-    // Make sure the notification belongs to the user
-    const result = await db.query(
-      `UPDATE notifications 
-       SET is_read = true 
-       WHERE id = $1 AND user_id = $2
-       RETURNING *`,
-      [id, userId]
-    );
-    
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Notification not found or access denied' });
-    }
-    
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Error marking notification as read:', error);
-    res.status(500).json({ error: 'Failed to mark notification as read' });
-  }
-};
-
-// Mark all notifications as read
-exports.markAllAsRead = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    
-    const result = await db.query(
-      `UPDATE notifications 
-       SET is_read = true 
-       WHERE user_id = $1 AND is_read = false
-       RETURNING *`,
-      [userId]
-    );
-    
-    res.json({ 
-      success: true, 
-      count: result.rowCount
-    });
-  } catch (error) {
-    console.error('Error marking all notifications as read:', error);
-    res.status(500).json({ error: 'Failed to mark all notifications as read' });
-  }
-};
-
 // Delete a notification
-exports.deleteNotification = async (req, res) => {
+const deleteNotification = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
     
+    // Use a direct query since we don't have a model function for deletion
+    const db = require('../config/db');
     const result = await db.query(
       `DELETE FROM notifications 
        WHERE id = $1 AND user_id = $2
@@ -302,16 +203,12 @@ exports.deleteNotification = async (req, res) => {
 };
 
 // Get unread count
-exports.getUnreadCount = async (req, res) => {
+const getUnreadCount = async (req, res) => {
   try {
     const userId = req.user.id;
+    const notifications = await getUnreadNotificationsByUser(userId);
     
-    const result = await db.query(
-      `SELECT COUNT(*) as count FROM notifications WHERE user_id = $1 AND is_read = false`,
-      [userId]
-    );
-    
-    res.json({ count: parseInt(result.rows[0].count) });
+    res.json({ count: notifications.length });
   } catch (error) {
     console.error('Error getting unread count:', error);
     res.status(500).json({ error: 'Failed to get unread count' });
@@ -319,17 +216,12 @@ exports.getUnreadCount = async (req, res) => {
 };
 
 module.exports = {
-  // These are the functions defined with exports.functionName syntax
-  getNotificationsForUser: exports.getNotificationsForUser,
-  createNotification: exports.createNotification,
-  markAsRead: exports.markAsRead,
-  markAllAsRead: exports.markAllAsRead,
-  deleteNotification: exports.deleteNotification,
-  getUnreadCount: exports.getUnreadCount,
-  
-  // Include these if they're defined as local functions
-  createTicketStatusNotification,
-  createNewTicketNotification,
   getUserNotifications,
-  getUnreadNotifications
+  getUnreadNotifications,
+  markAsRead,
+  markAllAsRead,
+  deleteNotification,
+  getUnreadCount,
+  createTicketStatusNotification,
+  createNewTicketNotification
 };

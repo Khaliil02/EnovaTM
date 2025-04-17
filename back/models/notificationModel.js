@@ -1,17 +1,29 @@
 const db = require('../config/db');
 
 // Create a new notification
-const createNotification = async (userId, ticketId, message, type = 'general') => {
+const createNotification = async (userId, ticketId, message, type = 'general', metadata = null) => {
   try {
+    // Convert metadata to JSON string if provided
+    const metadataJson = metadata ? JSON.stringify(metadata) : null;
+    
     const result = await db.query(
-      `INSERT INTO notifications (user_id, ticket_id, message, notification_type, is_read, created_at)
-       VALUES ($1, $2, $3, $4, false, NOW())
+      `INSERT INTO notifications (user_id, ticket_id, message, notification_type, metadata, is_read, created_at)
+       VALUES ($1, $2, $3, $4, $5, false, NOW())
        RETURNING *`,
-      [userId, ticketId, message, type]
+      [userId, ticketId, message, type, metadataJson]
     );
     
     // Add ticket title if there's a ticket ID
     let notification = result.rows[0];
+    
+    // Parse metadata back to object if it exists
+    if (notification.metadata) {
+      try {
+        notification.metadata = JSON.parse(notification.metadata);
+      } catch (err) {
+        console.error('Error parsing notification metadata:', err);
+      }
+    }
     
     if (ticketId) {
       const ticketResult = await db.query(
@@ -42,7 +54,21 @@ const getNotificationsByUser = async (userId) => {
        ORDER BY n.created_at DESC`,
       [userId]
     );
-    return result.rows;
+    
+    // Parse metadata for each notification
+    const notifications = result.rows.map(notification => {
+      if (notification.metadata) {
+        try {
+          notification.metadata = JSON.parse(notification.metadata);
+        } catch (err) {
+          console.error('Error parsing notification metadata:', err);
+          notification.metadata = null;
+        }
+      }
+      return notification;
+    });
+    
+    return notifications;
   } catch (error) {
     console.error('Error in getNotificationsByUser:', error);
     throw error;
@@ -60,7 +86,21 @@ const getUnreadNotificationsByUser = async (userId) => {
        ORDER BY n.created_at DESC`,
       [userId]
     );
-    return result.rows;
+    
+    // Parse metadata for each notification
+    const notifications = result.rows.map(notification => {
+      if (notification.metadata) {
+        try {
+          notification.metadata = JSON.parse(notification.metadata);
+        } catch (err) {
+          console.error('Error parsing notification metadata:', err);
+          notification.metadata = null;
+        }
+      }
+      return notification;
+    });
+    
+    return notifications;
   } catch (error) {
     console.error('Error in getUnreadNotificationsByUser:', error);
     throw error;
@@ -78,7 +118,19 @@ const markNotificationAsRead = async (notificationId, userId) => {
       [notificationId, userId]
     );
     
-    return result.rows[0] || null;
+    let notification = result.rows[0] || null;
+    
+    // Parse metadata if exists
+    if (notification && notification.metadata) {
+      try {
+        notification.metadata = JSON.parse(notification.metadata);
+      } catch (err) {
+        console.error('Error parsing notification metadata:', err);
+        notification.metadata = null;
+      }
+    }
+    
+    return notification;
   } catch (error) {
     console.error('Error in markNotificationAsRead:', error);
     throw error;
@@ -96,7 +148,20 @@ const markAllNotificationsAsRead = async (userId) => {
       [userId]
     );
     
-    return result.rows;
+    // Parse metadata for each notification
+    const notifications = result.rows.map(notification => {
+      if (notification.metadata) {
+        try {
+          notification.metadata = JSON.parse(notification.metadata);
+        } catch (err) {
+          console.error('Error parsing notification metadata:', err);
+          notification.metadata = null;
+        }
+      }
+      return notification;
+    });
+    
+    return notifications;
   } catch (error) {
     console.error('Error in markAllNotificationsAsRead:', error);
     throw error;

@@ -32,7 +32,8 @@ const HomePage = () => {
                 to="/dashboard"
                 className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 md:py-4 md:text-lg md:px-10 transition-all duration-150 shadow-md hover:shadow-lg"
               >
-                Go to Dashboard <FiArrowRight className="ml-2" />
+                <span className="text-white">Go to Dashboard</span>{" "}
+                <FiArrowRight className="ml-2" />
               </Link>
             ) : (
               <div className="flex flex-col sm:flex-row gap-4 w-full">

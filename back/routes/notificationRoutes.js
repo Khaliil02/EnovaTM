@@ -7,13 +7,15 @@ const { authenticateUser } = require('../middleware/authMiddleware');
 router.use(authenticateUser);
 
 // Get all notifications for the current user
-router.get('/', notificationController.getNotificationsForUser);
+router.get('/', notificationController.getUserNotifications);
 
 // Get unread count
 router.get('/unread-count', notificationController.getUnreadCount);
 
-// Create a new notification
-router.post('/', notificationController.createNotification);
+// Create a new notification (this might need to be removed if not used externally)
+router.post('/', (req, res) => {
+  res.status(501).json({ error: 'Direct notification creation not supported' });
+});
 
 // Mark notification as read
 router.put('/:id/read', notificationController.markAsRead);

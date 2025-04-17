@@ -161,7 +161,17 @@ export const messageApi = {
   send: (ticketId, recipientId, content) => 
     api.post('/messages', { ticketId, recipientId, content }),
   getConversation: (ticketId, userId) => 
-    api.get(`/messages/ticket/${ticketId}/user/${userId}`)
+    api.get(`/messages/ticket/${ticketId}/user/${userId}`),
+  markAsRead: (messageId) => 
+    api.put(`/messages/${messageId}/read`),
+  markAllAsRead: (ticketId, senderId) => 
+    api.put(`/messages/ticket/${ticketId}/user/${senderId}/read-all`),
+  getUserConversations: () => 
+    api.get('/messages/conversations'),
+  getById: (messageId) => 
+    api.get(`/messages/${messageId}`),
+  getRecentMessages: (limit = 5) => 
+    api.get(`/messages/recent?limit=${limit}`)
 };
 
 export default api;

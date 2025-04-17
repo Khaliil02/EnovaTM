@@ -1,4 +1,4 @@
-// Fix the audio initialization
+// Audio instance for notification sounds
 let notificationSound = null;
 
 // Initialize the audio on first call (after user interaction)

@@ -45,8 +45,39 @@ const markMessagesAsRead = async (ticketId, senderId, recipientId) => {
   return result.rows;
 };
 
+const markMessageReadById = async (messageId, recipientId) => {
+  const result = await db.query(
+    `UPDATE ticket_messages
+     SET is_read = true
+     WHERE id = $1
+     AND recipient_id = $2
+     AND is_read = false
+     RETURNING *`,
+    [messageId, recipientId]
+  );
+  
+  return result.rows[0];
+};
+
+const markAllMessagesByUserAsRead = async (ticketId, senderId, recipientId) => {
+  const result = await db.query(
+    `UPDATE ticket_messages
+     SET is_read = true
+     WHERE ticket_id = $1
+     AND sender_id = $2
+     AND recipient_id = $3
+     AND is_read = false
+     RETURNING *`,
+    [ticketId, senderId, recipientId]
+  );
+  
+  return result.rows;
+};
+
 module.exports = {
   createMessage,
   getMessagesByTicketAndUsers,
-  markMessagesAsRead
+  markMessagesAsRead,
+  markMessageReadById,
+  markAllMessagesByUserAsRead
 };

@@ -5,6 +5,10 @@ const bodyParser = require('body-parser');
 const http = require('http');
 const socketIo = require('socket.io');
 
+// Import database migrations
+const userPreferencesMigration = require('./migrations/add_user_preferences');
+const notificationMetadataMigration = require('./migrations/add_notification_metadata');
+
 const userRoutes = require('./routes/userRoutes');
 const ticketRoutes = require('./routes/ticketRoutes');
 const departmentRoutes = require('./routes/departmentRoutes');
@@ -16,6 +20,28 @@ const messageRoutes = require('./routes/messageRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Run database migrations
+const runMigrations = async () => {
+  try {
+    console.log('Running database migrations...');
+    // Run existing migrations
+    if (userPreferencesMigration && typeof userPreferencesMigration.migrate === 'function') {
+      await userPreferencesMigration.migrate();
+    }
+    
+    // Run our new notification metadata migration
+    await notificationMetadataMigration.migrate();
+    
+    console.log('All migrations completed successfully');
+  } catch (err) {
+    console.error('Migration error:', err);
+    // Continue server startup even if migrations fail
+  }
+};
+
+// Run migrations before starting the server
+runMigrations();
 
 // Middlewares
 app.use(bodyParser.json());
@@ -109,16 +135,6 @@ app.set('sendNotification', (userId, notification) => {
 // Add a general connection test endpoint
 app.get('/api/socket-test', (req, res) => {
   res.json({ status: 'Socket.io server running' });
-});
-
-// Add this error handling middleware at the end of your middleware chain
-app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
-  console.error('Stack trace:', err.stack);
-  res.status(500).json({
-    error: 'Server error: ' + err.message,
-    path: req.path
-  });
 });
 
 // Update server start

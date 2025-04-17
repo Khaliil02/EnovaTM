@@ -1,11 +1,19 @@
-import { useState, useContext } from 'react';
-import { Link, useNavigate, NavLink } from 'react-router-dom';
-import { AuthContext } from '../../context/AuthContext';
-import { Menu, Transition } from '@headlessui/react';
-import { Fragment } from 'react';
-import { FiMenu, FiX, FiUser, FiLogOut, FiSettings, FiChevronDown } from 'react-icons/fi';
-import logoImage from '../../assets/enova-logo-bw.png';
-import NotificationDropdown from './NotificationDropdown';
+import { useState, useContext } from "react";
+import { Link, useNavigate, NavLink } from "react-router-dom";
+import { AuthContext } from "../../context/AuthContext";
+import { Menu, Transition } from "@headlessui/react";
+import { Fragment } from "react";
+import {
+  FiMenu,
+  FiX,
+  FiUser,
+  FiLogOut,
+  FiSettings,
+  FiChevronDown,
+  FiMessageSquare,
+} from "react-icons/fi";
+import logoImage from "../../assets/enova-logo-bw.png";
+import NotificationDropdown from "./NotificationDropdown";
 
 const Navbar = () => {
   const { user, logout, isAuthenticated, isAdmin } = useContext(AuthContext);
@@ -14,7 +22,7 @@ const Navbar = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate("/login");
   };
 
   return (
@@ -24,23 +32,19 @@ const Navbar = () => {
           {/* Logo and Navigation Links */}
           <div className="flex items-center">
             <Link to="/" className="flex-shrink-0">
-              <img 
-                src={logoImage} 
-                alt="Enova TM Logo" 
-                className="h-10" 
-              />
+              <img src={logoImage} alt="Enova TM Logo" className="h-10" />
             </Link>
-            
+
             {isAuthenticated && (
               <div className="hidden md:block ml-10">
                 <div className="flex items-baseline space-x-3">
                   <NavLink
                     to="/dashboard"
-                    className={({ isActive }) => 
+                    className={({ isActive }) =>
                       `px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                        isActive 
-                          ? 'bg-primary-700 text-white'
-                          : 'text-white hover:bg-primary-700'
+                        isActive
+                          ? "bg-primary-700 text-white"
+                          : "text-white hover:bg-primary-700"
                       }`
                     }
                   >
@@ -48,25 +52,37 @@ const Navbar = () => {
                   </NavLink>
                   <NavLink
                     to="/tickets"
-                    className={({ isActive }) => 
+                    className={({ isActive }) =>
                       `px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                        isActive 
-                          ? 'bg-primary-700 text-white'
-                          : 'text-white hover:bg-primary-700'
+                        isActive
+                          ? "bg-primary-700 text-white"
+                          : "text-white hover:bg-primary-700"
                       }`
                     }
                   >
                     Tickets
                   </NavLink>
+                  <NavLink
+                    to="/messages"
+                    className={({ isActive }) =>
+                      `px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                        isActive
+                          ? "bg-primary-700 text-white"
+                          : "text-white hover:bg-primary-700"
+                      }`
+                    }
+                  >
+                    Messages
+                  </NavLink>
                   {isAdmin && (
                     <>
                       <NavLink
                         to="/users"
-                        className={({ isActive }) => 
+                        className={({ isActive }) =>
                           `px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                            isActive 
-                              ? 'bg-primary-700 text-white'
-                              : 'text-white hover:bg-primary-700'
+                            isActive
+                              ? "bg-primary-700 text-white"
+                              : "text-white hover:bg-primary-700"
                           }`
                         }
                       >
@@ -74,11 +90,11 @@ const Navbar = () => {
                       </NavLink>
                       <NavLink
                         to="/departments"
-                        className={({ isActive }) => 
+                        className={({ isActive }) =>
                           `px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                            isActive 
-                              ? 'bg-primary-700 text-white'
-                              : 'text-white hover:bg-primary-700'
+                            isActive
+                              ? "bg-primary-700 text-white"
+                              : "text-white hover:bg-primary-700"
                           }`
                         }
                       >
@@ -90,13 +106,13 @@ const Navbar = () => {
               </div>
             )}
           </div>
-          
+
           {/* Right side items */}
           {isAuthenticated ? (
             <div className="hidden md:flex items-center space-x-4">
               {/* Notification dropdown */}
               <NotificationDropdown />
-              
+
               {/* User menu */}
               <Menu as="div" className="relative inline-block text-left">
                 <Menu.Button className="flex items-center bg-primary-700 px-3 py-1.5 rounded-md transition-colors hover:bg-primary-900">
@@ -106,7 +122,7 @@ const Navbar = () => {
                   </span>
                   <FiChevronDown className="ml-2 h-4 w-4" />
                 </Menu.Button>
-                
+
                 <Transition
                   as={Fragment}
                   enter="transition ease-out duration-100"
@@ -123,7 +139,9 @@ const Navbar = () => {
                           <Link
                             to="/profile"
                             className={`${
-                              active ? 'bg-primary-50 text-primary-900' : 'text-gray-700'
+                              active
+                                ? "bg-primary-50 text-primary-900"
+                                : "text-gray-700"
                             } group flex w-full items-center rounded-md px-2 py-2 text-sm`}
                           >
                             <FiUser
@@ -139,7 +157,9 @@ const Navbar = () => {
                           <Link
                             to="/settings"
                             className={`${
-                              active ? 'bg-primary-50 text-primary-900' : 'text-gray-700'
+                              active
+                                ? "bg-primary-50 text-primary-900"
+                                : "text-gray-700"
                             } group flex w-full items-center rounded-md px-2 py-2 text-sm`}
                           >
                             <FiSettings
@@ -157,7 +177,9 @@ const Navbar = () => {
                           <button
                             onClick={handleLogout}
                             className={`${
-                              active ? 'bg-red-50 text-red-900' : 'text-gray-700'
+                              active
+                                ? "bg-red-50 text-red-900"
+                                : "text-gray-700"
                             } group flex w-full items-center rounded-md px-2 py-2 text-sm`}
                           >
                             <FiLogOut
@@ -176,11 +198,14 @@ const Navbar = () => {
           ) : (
             <div className="hidden md:block">
               <div className="flex items-center space-x-4">
-                <Link to="/login" className="text-white hover:bg-primary-700 px-3 py-2 rounded-md">
+                <Link
+                  to="/login"
+                  className="text-white hover:bg-primary-700 px-3 py-2 rounded-md"
+                >
                   Login
                 </Link>
-                <Link 
-                  to="/register" 
+                <Link
+                  to="/register"
                   className="bg-primary-600 text-white hover:bg-primary-500 px-3 py-2 rounded-md"
                 >
                   Register
@@ -188,11 +213,11 @@ const Navbar = () => {
               </div>
             </div>
           )}
-          
+
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center">
             {isAuthenticated && <NotificationDropdown />}
-            <button 
+            <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="inline-flex items-center justify-center p-2 ml-2 rounded-md text-white hover:bg-primary-700"
             >
@@ -201,7 +226,7 @@ const Navbar = () => {
           </div>
         </div>
       </div>
-      
+
       {/* Mobile menu */}
       {isMenuOpen && (
         <div className="md:hidden bg-primary-800">
@@ -210,11 +235,11 @@ const Navbar = () => {
               <>
                 <NavLink
                   to="/dashboard"
-                  className={({ isActive }) => 
+                  className={({ isActive }) =>
                     `block px-3 py-2 rounded-md text-base font-medium ${
-                      isActive 
-                        ? 'bg-primary-700 text-white'
-                        : 'text-white hover:bg-primary-700'
+                      isActive
+                        ? "bg-primary-700 text-white"
+                        : "text-white hover:bg-primary-700"
                     }`
                   }
                 >
@@ -222,25 +247,37 @@ const Navbar = () => {
                 </NavLink>
                 <NavLink
                   to="/tickets"
-                  className={({ isActive }) => 
+                  className={({ isActive }) =>
                     `block px-3 py-2 rounded-md text-base font-medium ${
-                      isActive 
-                        ? 'bg-primary-700 text-white'
-                        : 'text-white hover:bg-primary-700'
+                      isActive
+                        ? "bg-primary-700 text-white"
+                        : "text-white hover:bg-primary-700"
                     }`
                   }
                 >
                   Tickets
                 </NavLink>
+                <NavLink
+                  to="/messages"
+                  className={({ isActive }) =>
+                    `block px-3 py-2 rounded-md text-base font-medium ${
+                      isActive
+                        ? "bg-primary-700 text-white"
+                        : "text-white hover:bg-primary-700"
+                    }`
+                  }
+                >
+                  Messages
+                </NavLink>
                 {isAdmin && (
                   <>
                     <NavLink
                       to="/users"
-                      className={({ isActive }) => 
+                      className={({ isActive }) =>
                         `block px-3 py-2 rounded-md text-base font-medium ${
-                          isActive 
-                            ? 'bg-primary-700 text-white'
-                            : 'text-white hover:bg-primary-700'
+                          isActive
+                            ? "bg-primary-700 text-white"
+                            : "text-white hover:bg-primary-700"
                         }`
                       }
                     >
@@ -248,11 +285,11 @@ const Navbar = () => {
                     </NavLink>
                     <NavLink
                       to="/departments"
-                      className={({ isActive }) => 
+                      className={({ isActive }) =>
                         `block px-3 py-2 rounded-md text-base font-medium ${
-                          isActive 
-                            ? 'bg-primary-700 text-white'
-                            : 'text-white hover:bg-primary-700'
+                          isActive
+                            ? "bg-primary-700 text-white"
+                            : "text-white hover:bg-primary-700"
                         }`
                       }
                     >
@@ -262,7 +299,7 @@ const Navbar = () => {
                 )}
                 <div className="border-t border-primary-700 pt-2 mt-2">
                   <div className="px-3 py-2 text-white font-medium">
-                    {user?.name || 'User'}
+                    {user?.name || "User"}
                   </div>
                   <Link
                     to="/profile"
@@ -270,8 +307,8 @@ const Navbar = () => {
                   >
                     Profile
                   </Link>
-                  <button 
-                    onClick={handleLogout} 
+                  <button
+                    onClick={handleLogout}
                     className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-white hover:bg-primary-700"
                   >
                     Logout

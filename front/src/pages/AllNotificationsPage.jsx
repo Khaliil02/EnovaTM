@@ -1,133 +1,114 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { FiInbox, FiCheck, FiLoader, FiAlertCircle } from 'react-icons/fi';
-import { notificationApi } from '../services/api';
+import { useEffect } from "react";
+import { Link } from "react-router-dom";
+import { useNotifications } from "../context/NotificationContext";
+import {
+  FiTrash2,
+  FiCheck,
+  FiCheckCircle,
+  FiExternalLink,
+  FiInfo,
+} from "react-icons/fi";
+import { formatDistanceToNow } from "date-fns";
 
 const AllNotificationsPage = () => {
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const {
+    notifications,
+    fetchNotifications,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+  } = useNotifications();
 
   useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        setLoading(true);
-        const response = await notificationApi.getAll();
-        setNotifications(response.data || []);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching notifications:', err);
-        setError('Failed to load notifications. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchNotifications();
-  }, []);
+  }, [fetchNotifications]);
 
-  const handleMarkAsRead = async (id) => {
-    try {
-      await notificationApi.markAsRead(id);
-      setNotifications(notifications.map(n => 
-        n.id === id ? { ...n, is_read: true } : n
-      ));
-    } catch (err) {
-      console.error('Error marking notification as read:', err);
+  const getNotificationTypeIcon = (type) => {
+    switch (type) {
+      case "new_ticket":
+        return <FiInfo className="text-blue-500" />;
+      case "new_message":
+        return <FiExternalLink className="text-green-500" />;
+      case "status_change":
+        return <FiCheckCircle className="text-orange-500" />;
+      default:
+        return <FiInfo className="text-gray-500" />;
     }
   };
-
-  const handleMarkAllAsRead = async () => {
-    try {
-      await notificationApi.markAllAsRead();
-      setNotifications(notifications.map(n => ({ ...n, is_read: true })));
-    } catch (err) {
-      console.error('Error marking all notifications as read:', err);
-    }
-  };
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const unreadCount = notifications.filter(n => !n.is_read).length;
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <FiLoader className="animate-spin text-4xl text-primary-600" />
-      </div>
-    );
-  }
 
   return (
-    <div>
-      <div className="mb-6 flex flex-wrap justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
-        {unreadCount > 0 && (
-          <button 
-            onClick={handleMarkAllAsRead}
-            className="btn btn-sm btn-secondary flex items-center"
+    <div className="container mx-auto p-4">
+      <div className="bg-white shadow rounded-lg">
+        <div className="border-b px-4 py-4 flex justify-between items-center">
+          <h1 className="text-xl font-semibold text-gray-800">
+            All Notifications
+          </h1>
+          <button
+            onClick={markAllAsRead}
+            className="flex items-center text-sm bg-primary-50 text-primary-700 px-3 py-1 rounded hover:bg-primary-100"
           >
-            <FiCheck className="mr-2" /> Mark all as read
+            <FiCheckCircle className="mr-1" /> Mark all as read
           </button>
-        )}
-      </div>
-
-      {error && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-md mb-6 flex items-center">
-          <FiAlertCircle className="mr-2" />
-          <span>{error}</span>
         </div>
-      )}
 
-      <div className="bg-white rounded-lg shadow">
         {notifications.length === 0 ? (
-          <div className="p-12 text-center">
-            <FiInbox className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-lg font-medium text-gray-900">No notifications</h3>
-            <p className="mt-1 text-sm text-gray-500">You don't have any notifications at the moment.</p>
+          <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+            <FiInfo size={40} className="mb-4" />
+            <p>No notifications found</p>
           </div>
         ) : (
           <ul className="divide-y divide-gray-200">
             {notifications.map((notification) => (
-              <li key={notification.id} className={`relative ${!notification.is_read ? 'bg-blue-50' : ''}`}>
-                <Link
-                  to={notification.ticket_id ? `/tickets/${notification.ticket_id}` : '#'}
-                  className="block hover:bg-gray-50"
-                  onClick={() => {
-                    if (!notification.is_read) {
-                      handleMarkAsRead(notification.id);
-                    }
-                  }}
-                >
-                  <div className="px-4 py-4 sm:px-6">
-                    <div className="flex justify-between">
-                      <p className={`text-sm ${!notification.is_read ? 'font-medium' : ''} text-gray-900`}>
-                        {notification.message}
-                      </p>
-                      <div className="ml-2 flex-shrink-0">
-                        <p className="text-xs text-gray-500">{formatDate(notification.created_at)}</p>
-                      </div>
-                    </div>
-                    {notification.ticket_title && (
-                      <div className="mt-2">
-                        <p className="text-xs text-gray-500">
-                          Ticket: {notification.ticket_title}
-                        </p>
-                      </div>
-                    )}
+              <li
+                key={notification.id}
+                className={`p-4 hover:bg-gray-50 ${
+                  !notification.is_read ? "bg-blue-50" : ""
+                }`}
+              >
+                <div className="flex items-start">
+                  <div className="flex-shrink-0 mt-1">
+                    {getNotificationTypeIcon(notification.notification_type)}
                   </div>
-                </Link>
-                {!notification.is_read && (
-                  <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
-                )}
+                  <div className="ml-3 flex-grow">
+                    <div className="text-base text-gray-800">
+                      {notification.message}
+                    </div>
+
+                    {notification.ticket_id && (
+                      <Link
+                        to={`/tickets/${notification.ticket_id}`}
+                        className="text-sm text-primary-600 hover:text-primary-800 hover:underline mt-1 inline-block"
+                      >
+                        View ticket{" "}
+                        <FiExternalLink className="inline ml-1" size={14} />
+                      </Link>
+                    )}
+
+                    <div className="text-xs text-gray-500 mt-1">
+                      {formatDistanceToNow(new Date(notification.created_at), {
+                        addSuffix: true,
+                      })}
+                    </div>
+                  </div>
+                  <div className="flex space-x-2">
+                    {!notification.is_read && (
+                      <button
+                        onClick={() => markAsRead(notification.id)}
+                        className="text-blue-500 hover:text-blue-700"
+                        title="Mark as read"
+                      >
+                        <FiCheck size={18} />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => deleteNotification(notification.id)}
+                      className="text-gray-400 hover:text-red-500"
+                      title="Delete notification"
+                    >
+                      <FiTrash2 size={18} />
+                    </button>
+                  </div>
+                </div>
               </li>
             ))}
           </ul>

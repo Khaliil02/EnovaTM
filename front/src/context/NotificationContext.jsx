@@ -1,213 +1,175 @@
-import { createContext, useState, useContext, useEffect, useCallback } from 'react';
-import { io } from 'socket.io-client';
-import { AuthContext } from './AuthContext';
-import { notificationApi } from '../services/api';
-import { playNotificationSound } from '../utils/notificationSound';
+import React, { createContext, useState, useEffect, useContext } from "react";
+import { notificationApi } from "../services/api";
+import socket, {
+  subscribeToConnectionState,
+  reconnect,
+} from "../services/socketService";
+import { playNotificationSound } from "../utils/notificationSound";
+import { AuthContext } from "./AuthContext";
 
 export const NotificationContext = createContext();
 
 export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(false);
   const [socketConnected, setSocketConnected] = useState(false);
-  const { isAuthenticated, user } = useContext(AuthContext);
+  const [loading, setLoading] = useState(false);
+  const { user, isAuthenticated } = useContext(AuthContext);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
-  // Fetch notifications from API
-  const fetchNotifications = useCallback(async () => {
-    if (!isAuthenticated) return;
-    
-    try {
-      setLoading(true);
-      const response = await notificationApi.getAll();
-      if (response.data) {
-        setNotifications(response.data);
-        
-        // Count unread
-        const unreadNotifications = response.data.filter(n => !n.is_read);
-        setUnreadCount(unreadNotifications.length);
-      }
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [isAuthenticated]);
-  
-  // Update unread count
-  const fetchUnreadCount = useCallback(async () => {
-    if (!isAuthenticated) return;
-    
-    try {
-      const response = await notificationApi.getUnreadCount();
-      if (response.data && typeof response.data.count === 'number') {
-        setUnreadCount(response.data.count);
-      }
-    } catch (error) {
-      console.error('Error fetching unread count:', error);
-    }
-  }, [isAuthenticated]);
-
-  // Mark a notification as read
-  const markAsRead = useCallback(async (notificationId) => {
-    if (!isAuthenticated) return;
-    
-    try {
-      await notificationApi.markAsRead(notificationId);
-      
-      // Update local state
-      setNotifications(prev => prev.map(n => 
-        n.id === notificationId ? { ...n, is_read: true } : n
-      ));
-      
-      setUnreadCount(prev => Math.max(0, prev - 1));
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-    }
-  }, [isAuthenticated]);
-
-  // Mark all notifications as read
-  const markAllAsRead = useCallback(async () => {
-    if (!isAuthenticated || unreadCount === 0) return;
-    
-    try {
-      await notificationApi.markAllAsRead();
-      
-      // Update local state
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-      setUnreadCount(0);
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error);
-    }
-  }, [isAuthenticated, unreadCount]);
-
-  // Socket.io connection management
+  // Track socket connection status
   useEffect(() => {
-    let socket = null;
-    
-    const setupSocket = () => {
-      if (!isAuthenticated || !user?.id) return null;
-      
-      // Create new socket connection
-      const newSocket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
-        reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000,
-        reconnectionAttempts: 5,
-        transports: ['websocket', 'polling'] // Try forcing WebSocket first
-      });
-      
-      console.log('Attempting to connect to Socket.io at:', import.meta.env.VITE_API_URL || 'http://localhost:5000');
+    // Subscribe to socket connection state changes
+    const unsubscribe = subscribeToConnectionState((connected) => {
+      setSocketConnected(connected);
+    });
 
-      newSocket.on('connect', () => {
-        setSocketConnected(true);
-        
-        // Authenticate with user ID
-        newSocket.emit('authenticate', user.id);
-      });
-      
-      newSocket.on('disconnect', () => {
-        setSocketConnected(false);
-      });
-      
-      newSocket.on('authenticated', () => {
-        // Fetch latest notifications after authentication
-        fetchNotifications();
-      });
-      
-      newSocket.on('reconnect', () => {
-        // Re-authenticate after reconnection
-        newSocket.emit('authenticate', user.id);
-      });
-      
-      newSocket.on('newNotification', (notification) => {
-        // Add to notifications list
-        setNotifications(prev => [notification, ...prev]);
-        
-        // Update unread count
-        setUnreadCount(prev => prev + 1);
-        
-        // Play notification sound
-        playNotificationSound();
-        
-        // Show browser notification if supported and page is not visible
-        if ('Notification' in window && document.visibilityState !== 'visible') {
-          if (Notification.permission === 'granted') {
-            new Notification('New Notification', { 
-              body: notification.message,
-              icon: '/logo.png' // Add your logo path here
-            });
-          } else if (Notification.permission !== 'denied') {
-            Notification.requestPermission();
-          }
-        }
-      });
+    return () => unsubscribe();
+  }, []);
 
-      newSocket.on('connect_error', (error) => {
-        console.error('Socket.io connection error:', error);
-        setSocketConnected(false);
-      });
+  // Load user notification preferences
+  useEffect(() => {
+    if (user && user.preferences) {
+      setNotificationsEnabled(user.preferences.notifications_enabled !== false);
+    }
+  }, [user]);
 
-      newSocket.on('connect_timeout', () => {
-        console.error('Socket.io connection timeout');
-        setSocketConnected(false);
-      });
-      
-      return newSocket;
-    };
-    
-    socket = setupSocket();
-    
-    // Cleanup function
-    return () => {
-      if (socket) {
-        socket.off('connect');
-        socket.off('disconnect');
-        socket.off('authenticated');
-        socket.off('newNotification');
-        socket.off('reconnect');
-        
-        if (user?.id) {
-          socket.emit('logout', user.id);
-        }
-        
-        socket.disconnect();
-      }
-    };
-  }, [isAuthenticated, user?.id, fetchNotifications]);
-
-  // Initial fetch
+  // Fetch notifications on authentication change
   useEffect(() => {
     if (isAuthenticated) {
       fetchNotifications();
+      fetchUnreadCount();
     } else {
       setNotifications([]);
       setUnreadCount(0);
     }
-  }, [isAuthenticated, fetchNotifications]);
+  }, [isAuthenticated]);
 
-  // Periodic refresh for backup in case of socket issues
+  // Set up socket listeners for real-time notifications
   useEffect(() => {
-    if (!isAuthenticated) return;
-    
-    const intervalId = setInterval(() => {
-      fetchUnreadCount();
-    }, 60000); // Every minute
-    
-    return () => clearInterval(intervalId);
-  }, [isAuthenticated, fetchUnreadCount]);
+    if (!isAuthenticated || !socket) return;
+
+    const handleNewNotification = (notification) => {
+      if (notificationsEnabled) {
+        // Play sound for new notifications
+        playNotificationSound();
+
+        // Add notification to state
+        setNotifications((prev) => [notification, ...prev]);
+        setUnreadCount((prev) => prev + 1);
+      }
+    };
+
+    socket.on("newNotification", handleNewNotification);
+
+    return () => {
+      socket.off("newNotification", handleNewNotification);
+    };
+  }, [isAuthenticated, notificationsEnabled]);
+
+  // Function to reconnect socket manually
+  const handleReconnect = () => {
+    reconnect();
+  };
+
+  // Fetch all notifications
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      const response = await notificationApi.getAll();
+      if (response && response.data) {
+        setNotifications(response.data);
+      }
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      setLoading(false);
+    }
+  };
+
+  // Fetch unread notification count
+  const fetchUnreadCount = async () => {
+    try {
+      const response = await notificationApi.getUnreadCount();
+      if (response && response.data && response.data.count !== undefined) {
+        setUnreadCount(response.data.count);
+      }
+    } catch (error) {
+      console.error("Error fetching unread count:", error);
+    }
+  };
+
+  // Mark a notification as read
+  const markAsRead = async (notificationId) => {
+    try {
+      await notificationApi.markAsRead(notificationId);
+
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
+      );
+
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+    }
+  };
+
+  // Mark all notifications as read
+  const markAllAsRead = async () => {
+    try {
+      await notificationApi.markAllAsRead();
+
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+
+      setUnreadCount(0);
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+    }
+  };
+
+  // Delete a notification
+  const deleteNotification = async (notificationId) => {
+    try {
+      await notificationApi.delete(notificationId);
+
+      const deletedNotification = notifications.find(
+        (n) => n.id === notificationId
+      );
+      const wasUnread = deletedNotification && !deletedNotification.is_read;
+
+      setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+
+      if (wasUnread) {
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      }
+    } catch (error) {
+      console.error("Error deleting notification:", error);
+    }
+  };
+
+  // Toggle notifications
+  const toggleNotifications = (enabled) => {
+    setNotificationsEnabled(enabled);
+  };
+
+  // Context value with state and functions
+  const value = {
+    notifications,
+    unreadCount,
+    notificationsEnabled,
+    socketConnected,
+    loading,
+    fetchNotifications,
+    fetchUnreadCount,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    toggleNotifications,
+    handleReconnect,
+  };
 
   return (
-    <NotificationContext.Provider
-      value={{
-        notifications,
-        unreadCount,
-        loading,
-        socketConnected,
-        fetchNotifications,
-        markAsRead,
-        markAllAsRead
-      }}
-    >
+    <NotificationContext.Provider value={value}>
       {children}
     </NotificationContext.Provider>
   );

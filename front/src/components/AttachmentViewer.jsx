@@ -14,7 +14,6 @@ const AttachmentViewer = ({ attachment }) => {
   };
 
   const viewUrl = getAttachmentViewUrl(attachment.id);
-  const fileIcon = getFileIcon(attachment.mime_type || "");
 
   const handleViewClick = (e) => {
     e.stopPropagation();
@@ -26,7 +25,7 @@ const AttachmentViewer = ({ attachment }) => {
     <div className="border rounded mb-3">
       <div className="flex justify-between items-center p-2 bg-gray-50">
         <div className="flex items-center">
-          {fileIcon}
+          <span>📄</span>
           <span className="ml-2">{attachment.original_filename}</span>
         </div>
         <div>
@@ -76,12 +75,6 @@ const AttachmentViewer = ({ attachment }) => {
       )}
     </div>
   );
-};
-
-// Helper function to get appropriate icon based on file type
-const getFileIcon = (mimetype) => {
-  // You can implement this with appropriate icons based on file type
-  return <span>📄</span>;
 };
 
 export default AttachmentViewer;

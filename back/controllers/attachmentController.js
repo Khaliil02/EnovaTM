@@ -1,6 +1,5 @@
 const path = require('path');
 const fs = require('fs-extra');
-const jwt = require('jsonwebtoken');
 const {
   createAttachment,
   getAttachmentsByTicketId,
@@ -63,46 +62,7 @@ const getTicketAttachments = async (req, res) => {
   }
 };
 
-// Update the downloadAttachment function
-const downloadAttachment = async (req, res) => {
-  try {
-    const { id } = req.params;
-    console.log(`Attempting to download attachment ${id}`);
-    
-    // Get attachment details
-    const attachment = await getAttachmentById(id);
-    if (!attachment) {
-      return res.status(404).json({ error: 'Attachment not found' });
-    }
-    
-    // Fix the file path to use the actual path stored in the database
-    // Instead of trying to resolve it relative to the controller directory
-    const filePath = attachment.file_path;
-    console.log(`File path: ${filePath}`);
-    
-    // Check if file exists
-    if (!fs.existsSync(filePath)) {
-      console.error(`File not found: ${filePath}`);
-      return res.status(404).json({ error: 'File not found on server' });
-    }
-    
-    // Set Content-Disposition header for download
-    res.setHeader('Content-Disposition', `attachment; filename="${attachment.file_name}"`);
-    
-    // Send the file
-    res.sendFile(filePath, (err) => {
-      if (err) {
-        console.error('Error sending file:', err);
-        res.status(500).end();
-      }
-    });
-  } catch (err) {
-    console.error('Error downloading attachment:', err);
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// Ensure this function is properly implemented
+// View attachment in the browser
 const viewAttachment = async (req, res) => {
   try {
     const { id } = req.params;
@@ -117,7 +77,6 @@ const viewAttachment = async (req, res) => {
     
     // Check if file exists
     if (!fs.existsSync(filePath)) {
-      console.error(`File not found: ${filePath}`);
       return res.status(404).json({ error: 'File not found on server' });
     }
     

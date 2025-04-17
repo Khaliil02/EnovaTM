@@ -86,13 +86,10 @@ const removeUser = async (req, res) => {
   }
 };
 
-// Update the updateUserProfile function to handle name instead of first_name/last_name
+// Keeping only the essential code, removing debug logs
 const updateUserProfile = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log('Updating profile for user ID:', id);
-    console.log('Request body:', req.body);
-    console.log('Request file:', req.file);
     
     // Ensure user can only modify their own profile unless admin
     if (req.user.id !== parseInt(id) && !req.user.is_admin) {
@@ -101,16 +98,13 @@ const updateUserProfile = async (req, res) => {
     
     // Get basic profile data and preferences
     const { name, email, phone, preferences } = req.body;
-    console.log('Preferences received:', preferences);
     
     // Parse preferences if it's a string
     let parsedPreferences = preferences;
     if (preferences && typeof preferences === 'string') {
       try {
         parsedPreferences = JSON.parse(preferences);
-        console.log('Parsed preferences:', parsedPreferences);
       } catch (err) {
-        console.error('Error parsing preferences:', err);
         // Return a 400 error instead of proceeding with invalid preferences
         return res.status(400).json({ error: 'Invalid preferences format' });
       }
@@ -189,5 +183,5 @@ module.exports = {
   addUser,
   modifyUser,
   removeUser,
-  updateUserProfile  // Add this line
+  updateUserProfile
 };
